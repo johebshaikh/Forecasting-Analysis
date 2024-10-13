@@ -1,0 +1,5019 @@
+---
+title: "MATH1307 Forecasting - Final Project"
+author: "Table of Content"
+subtitle: Joheb Shaikh(s3823492)
+output:
+  html_document:
+    toc: yes
+    toc_depth: 4
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Required Packages
+
+```{r, message=FALSE}
+rm(list=ls()) #clears the memory
+
+library(TSA)
+library(car)
+library(carData)
+library(lmtest)
+library(zoo)
+library(AER) 
+library(dynlm)
+library(lattice)
+library(Formula)
+library(ggplot2)
+library(Hmisc)
+library(forecast)
+library(xts)
+library(x13binary)
+library(x12) 
+library(nardl)
+library(dLagM)
+library(readr) 
+library(uroot)
+library(tseries)
+library(urca)
+library(expsmooth)
+```
+
+
+# Introduction
+
+Air pollution is one of our era's biggest plagues, not only because it influences climate change but also because of its impact on public and individual health owing to increased illness and death. Several contaminants are important contributors to human illness. Particulate Matter (PM), particles with varying but extremely tiny diameters, enter the respiratory system by inhalation and cause respiratory and cardiovascular illnesses, reproductive and central nervous system malfunction, and cancer. Human emissions of carbon dioxide and other greenhouse gases are also a major contributor to climate change and one of the world's most urgent problems. In addition, talk about flowering, flowering patterns are critical for understanding plant reproductive dynamics and pollinator resource availability. Blossom and leaf phenology are constrained by seasonal climate, and leaf and flower hues are likely to change across seasons. In comparison to this, the Rank-based Order similarity metric is used to compute the similarity between the yearly flowering order and the blooming order.
+
+The research is broken into three sections. The first task aims to assess and provide the best 4 weeks ahead forecasts for the mortality series, including point forecasts and confidence intervals for the most optimum model for each technique employed. For this work, we will utilize the time-series regression technique to build multivariate distributed lag models with weekly mortality data as an autonomous explanatory series. We will also show exponential smoothing approaches in combination with appropriate state-space models to forecast mortality data. We will next compare these approaches using residual assumptions and quality of fit measures. The final goal of this research is to offer four-week predictions in terms of average absolute scaled error from the most suited model (MASE).
+
+The next goal is to examine how to model and predict FFD to produce the best four-year forecasts for the FFD series, as well as point forecasts and confidence intervals. In this section, we will use the time-series regression approach to create univariate distributed lag models with annual FFD series. We will also illustrate how to anticipate FFD data using exponential smoothing methods in combination with appropriate state-space models. To achieve our ultimate aim, we will assess various techniques utilizing residual assumptions and quality of fit metrics.
+
+The final and most important job is separated into two parts. The first stage necessitates the use of several modeling approaches, including: (DLM, ARDL, Poly, Koyck, Dynam). Among all of the techniques employed with the ideal model three years ahead, forecasting must be demonstrated, and the second stage obliges adequate analysis and the generation of three-year predictions.
+
+
+# Dataset Details
+
+The datasets were obtained from MATH1307 assignment - 3 canvas, which features three separate datasets: one concerning weekly mortality series, the second is about the first flowering day, and the last is regarding the Rank-based Order similarity metric (RBO).
+
+# Task 1 - Time series analysis and forecasting of disease-specific weekly mortality in relation to temperature, pollutant size, and noxious chemical emissions levels
+
+The objective of this task is to forecast the mortality series. The analysis looks at the possible consequences of climate change and pollution on disease-specific mortality from 2010 to 2020. A group of researchers studied disease-specific average weekly mortality in Paris, France, as well as the city's local climate (temperature), size of pollutants, and levels of noxious chemical emissions from cars and industry in the air -all of which were measured at the same points between 2010 and 2020. 
+
+*
+Reading the given data set.
+
+```{r}
+mort_1 <- read.csv("/Users/zuaibshaikh/Desktop/SEM 4/Forecasting/Final Project/mort  .csv")
+mort= mort_1[,2:6]
+head(mort)
+```
+
+*
+Checking the class of the attributes
+
+```{r}
+class(mort$mortality)
+class(mort$temp)
+class(mort$chem1)
+class(mort$chem2)
+class(mort$particle.size)
+```
+
+*
+converting dataset to ts object
+
+```{r}
+mortality.ts <- ts(mort$mortality, start =2010, frequency= 52)
+head(mortality.ts)
+
+tail(mortality.ts)
+
+tail(mortality.ts)
+str(mortality.ts)
+
+temp.ts= ts(mort$temp,start =2010, frequency= 52)
+head(temp.ts)
+
+chem_1.ts = ts(mort$chem1, start =2010, frequency= 52)
+head(chem_1.ts)
+
+chem_2.ts = ts(mort$chem2, start =2010, frequency= 52)
+head(chem_2.ts)
+
+particle.size.ts = ts(mort$particle.size, start =2010, frequency= 52)
+head(particle.size.ts)
+
+mort.ts=ts(mort,start =2010, frequency= 52)
+head(mort.ts)
+
+```
+
+## Analysis and visualisation of data
+
+Plotting graphs for the converted time series characteristics.
+
+1. Plotting time series plot of mortality series which we will use as a predictor series for distributed lag models
+2. Plotting a time series graph for temperature data to investigate its properties.
+3. Plotting a time series graph for chemical level 1 data to investigate its properties.
+4. Plotting a time series graph for chemical level 2 data to investigate its properties.
+5. Plotting a time series graph for partical size data to investigate its properties.
+
+*
+Mortality Variable:
+
+
+```{r}
+plot(mortality.ts, xlab='Year',type='o', main = " Figure 1. Time series plot of weekly mortality")
+```
+
+From ***Figure 1*** of time series plot for weekly mortality series, we can interpret as follows:
+
+1. **Trend -** The plot is showing there is no obvious trend.
+2. **Seasonality -** There is a presence of seasonality but, the seasonal pattern is not constant over time.
+3. **Changing Variation -** Because of the presence of seasonality, changing variance is not visible.
+4. **Behaviour –** The series behaviour is not apparent due to the seasonal trend.
+5. **Change Point -** There is one possible intervention periods in the vicinity of 2013.
+
+
+*
+Temperature Variable:
+
+
+```{r}
+plot(temp.ts, xlab='Year',type='o', main = " Figure 2. Time series plot of temperature")
+```
+
+From ***Figure 2*** of time series plot for temperature series, we can interpret as follows:
+
+1. **Trend -** The plot is showing there is no obvious trend.
+2. **Seasonality -** There is a presence of seasonality.
+3. **Changing Variation -** Because of the presence of seasonality, changing variance is not visible.
+4. **Behaviour –** The series behaviour is not apparent due to the seasonal trend.
+5. **Change Point -** There is no possible intervention periods.
+
+
+
+*
+First Chemical Variable:
+
+
+```{r}
+plot(chem_1.ts, xlab='Year',type='o', main = " Figure 3. Time series plot of noxious chemical emission level 1")
+```
+
+From ***Figure 3*** of time series plot for chemical level 1 series, we can interpret as follows:
+
+1. **Trend -** The plot is showing there kind of downward trend but it is not obvious.
+2. **Seasonality -** There is a presence of seasonality but, the seasonal pattern is not constant over time.
+3. **Changing Variation -** Because of the presence of seasonality, changing variance is not visible.
+4. **Behaviour –** The series behaviour is not apparent due to the seasonal trend.
+5. **Change Point -** There is no possible intervention periods.
+
+
+
+*
+Second Chemical Variable:
+
+
+```{r}
+plot(chem_2.ts, xlab='Year',type='o', main = " Figure 4. Time series plot of noxious chemical emission level 2")
+```
+
+From ***Figure 4*** of time series plot for chemical level 2 series, we can interpret as follows:
+
+1. **Trend -** The plot is showing there is no obvious trend.
+2. **Seasonality -** There is a presence of seasonality.
+3. **Changing Variation -** Because of the presence of seasonality, changing variance is not visible.
+4. **Behaviour –** The series behaviour is not apparent due to the seasonal trend.
+5. **Change Point -** There is one possible intervention periods in the vicinity of 2014.
+
+
+*
+Particle Size Variable:
+
+
+```{r}
+plot(particle.size.ts, xlab='Year',type='o', main = " Figure 5. Time series plot of pollutants particle size")
+```
+
+From ***Figure 5*** of time series plot for particle size series, we can interpret as follows:
+
+1. **Trend -** The plot is showing there is no obvious trend.
+2. **Seasonality -** There is a presence of seasonality.
+3. **Changing Variation -** Because of the presence of seasonality, changing variance is not visible.
+4. **Behaviour –** The series behaviour is not apparent due to the seasonal trend.
+5. **Change Point -** There is no possible intervention periods.
+
+*
+In order to precisely depict the secondary mortality series alongside the explicative all the rest response series in the same figure, we pleasure normalize the data. The code below gives a time series tale to investigate the series relationship.
+
+```{r}
+mort.scale = scale(mort.ts)
+plot(mort.scale, plot.type="s",col = c("black", "red", "blue", "green", "brown"), main = "Figure 6. Weekly mortality data series")
+legend("topleft",lty=1, text.width =1.7, col=c("black", "red", "blue", "green", "brown"), c("Mortality", "Temperature", "Chemical 1", "Chemical 2","Partical size"))
+```
+
+From **figure 6** we can infer all of the above five-time series drawn together after scaling and centering.
+
+## Stationarity Check
+
+*
+Plotting ACF/PACF plots for all attributes and performing ADF test for the same.
+
+1. Mortality Series
+
+```{r}
+acf(mortality.ts, lag.max = 48, main = "Figure 7. Sample ACF for Mortality Series")
+```
+
+
+```{r}
+pacf(mortality.ts, lag.max = 48, main = "Figure 8. Sample PACF for Mortality Series")
+```
+
+
+```{r}
+adf.test(mortality.ts)
+
+```
+
+```{r}
+adf.mortality.ts = ur.df(mortality.ts, type = "none", lags = 1, selectlags = "AIC")
+summary(adf.mortality.ts)
+```
+
+
+```{r}
+pp.mortality.ts = ur.pp(mortality.ts, type = "Z-alpha", lags = "short") 
+summary(pp.mortality.ts)
+
+```
+
+The **ACF/PACF** plot for the mortality series is shown in ***Figure 7*** & ***Figure 8*** which tells us about:
+
+*
+A sinusoidal like pattern in the ACF plot of mortality series, indicating that there is no trend.
+*
+The ACF plot revealed strong seasonal patterns.
+*
+In this case, our PACF's longer initial line implies the likelihood of a trend. In addition, we can see high significant lags and a large drop at the second major lag.
+*
+The augmented Dickey-Fuller test yields a p-value of 0.01 which is less than 0.05, indicating that the series is **stationary** at the 5% level of significance.
+*
+We infer that the moratlity series exhibits a significant seasonality pattern.
+
+
+2. Temperature Series
+
+```{r}
+acf(temp.ts, lag.max = 48, main = "Figure 9. Sample ACF for Temperature Series")
+```
+
+
+```{r}
+pacf(temp.ts, lag.max = 48, main = "Figure 10. Sample PACF for Temperature Series")
+```
+
+
+```{r}
+adf.test(temp.ts)
+
+```
+
+```{r}
+adf.temp.ts = ur.df(temp.ts, type = "none", lags = 1, selectlags = "AIC")
+summary(adf.temp.ts)
+```
+
+
+```{r}
+pp.temp.ts = ur.pp(temp.ts, type = "Z-alpha", lags = "short") 
+summary(pp.temp.ts)
+
+```
+
+The **ACF/PACF** plot for the temperature series is shown in ***Figure 9*** & ***Figure 10*** which tells us about:
+
+*
+A sinusoidal like pattern in the ACF plot of temperature series, indicating that there is no trend.
+*
+The ACF plot revealed strong seasonal patterns.
+*
+In this case, our PACF's longer initial line implies the likelihood of a trend. In addition, we can see high significant lags.
+*
+The augmented Dickey-Fuller test yields a p-value of 0.01 which is less than 0.05, indicating that the series is **stationary** at the 5% level of significance.
+*
+We infer that the temperature series exhibits a significant seasonality pattern.
+
+
+
+3. First Chemical Series
+
+```{r}
+acf(chem_1.ts, lag.max = 48, main = "Figure 11. Sample ACF for noxious chemical emission level 1")
+```
+
+
+```{r}
+pacf(chem_1.ts, lag.max = 48, main = "Figure 12. Sample PACF for noxious chemical emission level 1")
+```
+
+
+```{r}
+adf.test(chem_1.ts)
+
+```
+
+```{r}
+adf.chem_1.ts = ur.df(chem_1.ts, type = "none", lags = 1, selectlags = "AIC")
+summary(adf.chem_1.ts)
+```
+
+
+```{r}
+pp.chem_1.ts = ur.pp(chem_1.ts, type = "Z-alpha", lags = "short") 
+summary(pp.chem_1.ts)
+
+```
+
+The **ACF/PACF** plot for the chemical level 1 series is shown in ***Figure 11*** & ***Figure 12*** which tells us about:
+
+*
+A sinusoidal like pattern in the ACF plot of chemical level 1 series, indicating that there is no trend.
+*
+The ACF plot revealed strong seasonal patterns.
+*
+In this case, our PACF's longer initial line implies the likelihood of a trend. In addition, we can see high significant lags.
+*
+The augmented Dickey-Fuller test yields a p-value of 0.01 which is less than 0.05, indicating that the series is **stationary** at the 5% level of significance.
+*
+We infer that the chemical level 1 series exhibits a significant seasonality pattern.
+
+4. Second Chemical Series
+
+```{r}
+acf(chem_2.ts, lag.max = 48, main = "Figure 13. Sample ACF for noxious chemical emission level 2")
+```
+
+
+```{r}
+pacf(chem_2.ts, lag.max = 48, main = "Figure 14. Sample PACF for noxious chemical emission level 2")
+```
+
+
+```{r}
+adf.test(chem_2.ts)
+
+```
+
+```{r}
+adf.chem_2.ts = ur.df(chem_2.ts, type = "none", lags = 1, selectlags = "AIC")
+summary(adf.chem_2.ts)
+```
+
+
+```{r}
+pp.chem_2.ts = ur.pp(chem_2.ts, type = "Z-alpha", lags = "short") 
+summary(pp.chem_2.ts)
+
+```
+
+The **ACF/PACF** plot for the chemical level 2 series is shown in ***Figure 13*** & ***Figure 14*** which tells us about:
+
+*
+A sinusoidal like pattern in the ACF plot of chemical level 2 series, indicating that there is no trend.
+*
+The ACF plot revealed strong seasonal patterns.
+*
+In this case, our PACF's longer initial line implies the likelihood of a trend. In addition, we can see high significant lags.
+*
+The augmented Dickey-Fuller test yields a p-value of 0.01 which is less than 0.05, indicating that the series is **stationary** at the 5% level of significance.
+*
+We infer that the chemical level 2 series exhibits a significant seasonality pattern.
+
+
+
+5. Partical Size Series
+
+```{r}
+acf(particle.size.ts, lag.max = 48, main = "Figure 15. Sample ACF for Partical Size Series")
+```
+
+
+```{r}
+pacf(particle.size.ts, lag.max = 48, main = "Figure 16. Sample PACF for Partical Size Series")
+```
+
+
+```{r}
+adf.test(particle.size.ts)
+
+```
+
+```{r}
+adf.particle.size.ts = ur.df(particle.size.ts, type = "none", lags = 1, selectlags = "AIC")
+summary(adf.particle.size.ts)
+```
+
+
+```{r}
+pp.particle.size.ts = ur.pp(particle.size.ts, type = "Z-alpha", lags = "short") 
+summary(pp.particle.size.ts)
+
+```
+
+The **ACF/PACF** plot for the partical size series is shown in ***Figure 15*** & ***Figure 16*** which tells us about:
+
+*
+A sinusoidal like pattern in the ACF plot of partical size series, indicating that there is no trend.
+*
+The ACF plot revealed strong seasonal patterns.
+*
+In this case, our PACF's longer initial line implies the likelihood of a trend. In addition, we can see high significant lags.
+*
+The augmented Dickey-Fuller test yields a p-value of 0.01 which is less than 0.05, indicating that the series is **stationary** at the 5% level of significance.
+*
+We infer that the partical size series exhibits a significant seasonality pattern.
+
+As a result of this analysis, the outcomes of ADF tests are less than the **5% significance level,** and additional variables support this. In conclusion, this implies that the series is stationary.
+
+## Analysing the impact of the components of a time series data on the given dataset.
+
+*
+**Seasonality,** **Trend,** and **Remainder** are time-series important parameters.
+*
+It is essential to divide the time series into discrete components. This facilitates in observing individual effects as well as past activities on existing components. This decomposition can also be used to study and learn more about the individual components.
+
+### The Influence of Trend and Seasonality
+
+The series can be deconstructed to examine the outcome/influence of trend and seasonality. We spoke about the STL decomposition in this section.
+
+#### Time Series Decomposition of mortality
+
+```{r}
+mortality.ts.decom.stl <- stl(mortality.ts, t.window=15, s.window="periodic", robust=TRUE)
+plot(mortality.ts.decom.stl, main="Figure 17. STL decomposition of the weekly mortality series")
+```
+
+From **figure 17** STL, that trend follows the entire model of the original series with an increase in tendency and then decreases. The influence of seasonality is constant over time and the remainder of the series illustrates the minor interventions.
+
+#### Time Series Decomposition of temperature
+
+```{r}
+temperature.ts.decom.stl <- stl(temp.ts, t.window=15, s.window="periodic", robust=TRUE)
+plot(temperature.ts.decom.stl, main="Figure 18. STL decomposition of the temperature series")
+```
+
+From **figure 18** STL, that trend follows the entire model of the original series with an increase in tendency, decreases, and again rises. The influence of seasonality is constant over time and there are no significant variations and changing variance in the remainder section.
+
+#### Time Series Decomposition of noxious chemical emission level 1
+
+```{r}
+chem_1.ts.decom.stl <- stl(chem_1.ts, t.window=15, s.window="periodic", robust=TRUE)
+plot(chem_1.ts.decom.stl, main="Figure 19. STL decomposition of the noxious chemical emission level 1 series")
+```
+
+From **figure 19** STL, that trend follows the entire model of the original series with an increase in tendency and then decreases. The influence of seasonality is constant over time and the remainder of the series illustrates the minor interventions.
+
+#### Time Series Decomposition of noxious chemical emission level 2
+
+```{r}
+chem_2.ts.decom.stl <- stl(chem_2.ts, t.window=15, s.window="periodic", robust=TRUE)
+plot(chem_2.ts.decom.stl, main="Figure 20. STL decomposition of the noxious chemical emission level 2 series")
+```
+
+From **figure 20** STL, that trend follows the entire model of the original series with an increase in tendency and then decreases. The influence of seasonality is constant over time and there are no significant variations and changing variance in the remainder section.
+
+
+#### Time Series Decomposition of Partical Size Series
+
+```{r}
+particle.size.ts.decom.stl <- stl(particle.size.ts, t.window=15, s.window="periodic", robust=TRUE)
+plot(particle.size.ts.decom.stl, main="Figure 21. STL decomposition of the Partical Size Series")
+```
+
+From **figure 21** STL, that trend follows the entire model of the original series with an increase in tendency, decreases, and again rises.. The influence of seasonality is constant over time and the remainder of the series illustrates the minor interventions.
+
+
+## The Correlation matrix
+
+```{r}
+cor(mort.ts)
+```
+
+From the above correlation matrix, we can infer that the ***temperature*** has a negative-weak correlation of -0.4386396, with the weekly mortality, the ***chem-1*** has a moderate correlation of 0.5574476, with the weekly mortality, the ***chem-2*** has a weak correlation of 0.2569989, with the weekly mortality and, the ***particle. size*** has a weak correlation of 0.4438713 with the weekly mortality.
+
+Because the weekly mortality is estimated as a dependent variable, it occupies the y-axis. Such is compared to the other four variables.
+
+
+## Time series regression methods
+### Model Fiiting dLagM with Multiple predictors are to be modelled
+#### Finite distributed lag model
+
+To identify an appropriate model for forecasting weekly mortality, we will consider fitting distributed lag models that incorporate an independent detailed series and its lags to support describe the general variance and correlation formation in our dependent series.
+
+To determine the model’s finite lag length, we build a loop with multiple predictors that calculates accuracy metrics such as AIC/BIC and MASE for models with varying lag lengths and selects the model with the lowest values.
+
+```{r}
+for ( i in 1:10){
+model1.1 = dlm(y =as.vector(mortality.ts), x=as.vector(temp.ts)  + as.vector(chem_1.ts)  + as.vector(chem_2.ts)  + as.vector(particle.size.ts), q = i )
+cat("q = ", i, "AIC = ", AIC(model1.1$model), "BIC = ", BIC(model1.1$model),"MASE =", MASE(model1.1)$MASE,"\n")
+}
+```
+According to the output of finite distributed lag, lag 10 has the lowest MASE, AIC, and BIC values which are MASE = 1.150523, AIC = 3530.224, and BIC = 3584.962. As a result, we provide a lag duration of (q=10).
+
+*
+Fitting a finite DLM with a lag of 10 and doing the diagnostic checking for **multiple predictors** with respect to dependent variable **Weekly mortality**.
+
+```{r}
+finite_DLM <- dlm(y =as.vector(mortality.ts), x=as.vector(temp.ts)  + as.vector(chem_1.ts)  + as.vector(chem_2.ts)  + as.vector(particle.size.ts), q = 10)
+summary(finite_DLM)
+```
+The above model of the finite distributed lag model has q=10, Almost all lag weights in a predictor series are statistically significant at the 5% level. The adjusted R-squared of the above model is 0.323, indicating that this only explains 32.3 percent of the variability in the model. The whole model has a p-value of 2.2e-16, which is less than 0.05, which shows that it is statistically significant.
+
+```{r}
+checkresiduals(finite_DLM$model)
+
+```
+
+
+```{r}
+ shapiro.test(residuals(finite_DLM$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 22:***
+
+*
+The time series plot clearly shows that the residuals are not randomly distributed.
+*
+We may determine from the ACF plot that there is serial correlation as well as seasonality in the residuals.
+*
+Since the p-value is less than 0.05, the Beusch-Godfrey test maintains serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals a breach of the normalcy assumptions.
+*
+Since the p-value is < 0.05 we reject the null hypothesis(H0). This implies that errors are not normally distributed. Hence assumption is violated.
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_dlm =vif(finite_DLM$model)
+vif_dlm
+```
+
+
+```{r}
+vif_dlm >10
+```
+
+*
+According to the VIF values, the above model with q=10 does not have a multicollinearity problem.
+
+###$ Fitting polynomial distributed lag model
+
+Again we creating a loop with multiple predictors for polynomial distributed lag models that calculates accuracy metrics such as AIC/BIC and MASE for models with varying lag lengths and orders and selects the model with the lowest values.
+
+*
+Fitting a polynomial DLM for **multiple predictors** with respect to dependent variable **Weekly mortality**.
+
+```{r}
+for(i in 1:10){
+for(j in 1:4){
+                model_2.1 <- polyDlm(y =as.vector(mortality.ts), x=as.vector(temp.ts)  + as.vector(chem_1.ts)  + as.vector(chem_2.ts)  + as.vector(particle.size.ts), q
+= i, k = j, show.beta = FALSE)
+                cat("q:",i,"k:",j, "AIC:",AIC(model_2.1$model), "BIC:", BIC(model_2.1
+$model),"MASE =", MASE(model_2.1)$MASE, "\n")
+} }
+```
+
+According to the output of polynomial distributed lag model, lag =10 and k=4 has the lowest MASE, AIC, and BIC values which are MASE = 1.162673, AIC = 3525.611, and BIC = 3555.085 As a result, we provide a lag duration of (q=10, k=4).
+
+```{r}
+poly_DLM <- polyDlm(y =as.vector(mortality.ts), x=as.vector(temp.ts)  + as.vector(chem_1.ts)  + as.vector(chem_2.ts)  + as.vector(particle.size.ts), q = 10, k = 4)
+
+```
+
+```{r}
+ summary(poly_DLM)
+```
+
+The above model of the polynomial distributed lag model has q=10 and k=4, and there are consequential terms at the 5% level of significance. The adjusted R-squared of the above model is 0.3213, indicating that this only explains 32.13 percent of the variability in the model. The whole model has a p-value of 2.2e-16, which is less than 0.05, which shows that it is statistically significant.
+
+```{r}
+checkresiduals(poly_DLM$model)
+```
+
+
+```{r}
+ shapiro.test(residuals(poly_DLM$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 23:***
+
+*
+The time series plot clearly shows that the residuals are not randomly distributed.
+*
+We may determine from the ACF plot that there is serial correlation as well as seasonality in the residuals.
+*
+Since the p-value is less than 0.05, the Beusch-Godfrey test maintains serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals a breach of the normalcy assumptions.
+*
+Since the p-value is < 0.05 we reject the null hypothesis(H0). This implies that errors are not normally distributed. Hence assumption is violated.
+
+Now checking the multicollinearity issue
+
+
+```{r}
+vif_poly =vif(poly_DLM$model)
+vif_poly
+```
+
+```{r}
+ vif_poly >10
+```
+
+*
+According to the VIF values, with q=10, k=4 has a multicollinearity problem.
+
+#### Fitting Koyck model
+
+Fitting a Koyck models for **multiple predictors** with respect to dependent variable **Weekly mortality**.
+
+```{r}
+Koyck_model = koyckDlm(y =as.vector(mortality.ts), x=as.vector(temp.ts)  + as.vector(chem_1.ts)  + as.vector(chem_2.ts)  + as.vector(particle.size.ts))
+summary(Koyck_model$model, diagnostics=TRUE)
+
+```
+
+The above Koyck model states that there are consequential terms at the 5% level of significance. The adjusted R-squared of the above model is 0.5102, indicating that this only explains 51.02 percent of the variability in the model. The whole model has a p-value of 2.2e-16, which is less than 0.05, which shows that it is statistically significant.
+
+```{r}
+ checkresiduals(Koyck_model$model)
+```
+
+
+```{r}
+ shapiro.test(residuals(Koyck_model$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 24:***
+
+*
+The time series plot clearly shows that the residuals are not randomly distributed.
+*
+We may determine from the ACF plot that there is serial correlation as well as seasonality in the residuals.
+*
+The histogram of patterned residuals reveals a breach of the normalcy assumptions.
+*
+Since the p-value is < 0.05 we reject the null hypothesis(H0). This implies that errors are not normally distributed. Hence assumption is violated.
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_poly=vif(Koyck_model$model)
+vif_poly
+```
+
+
+```{r}
+ vif_poly>10
+```
+
+*
+According to the VIF values, the above model does not have a multicollinearity problem.
+
+#### Fitting autoregressive distributed lag models
+
+Autoregressive distributed lag models are the last model type derived from the time series regression technique. To describe the parameters of ARDL(p,q), we build a loop with multiple predictors that fits autoregressive distributed lag models for a variety of lag lengths and AR process orders and calculates accuracy metrics such as AIC/BIC and MASE.
+
+```{r}
+for (i in 1:5){ for(j in 1:5){
+    model_2 = ardlDlm(y =as.vector(mortality.ts), x=as.vector(temp.ts)  + as.vector(chem_1.ts)  + as.vector(chem_2.ts)  + as.vector(particle.size.ts), p = i , q = j)
+    cat("p =", i, "q =", j, "AIC =", AIC(model_2$model), "BIC =", BIC(model_2$model),
+"MASE =", MASE(model_2)$MASE, "\n")
+} }
+
+```
+
+For fitting and analysis, five models with the lowest MASE values were chosen. The models were as follows:
+
+*
+**ARDL(1,4)**
+*
+**ARDL(2,4)**
+*
+**ARDL(3,4)**
+*
+**ARDL(4,4)**
+*
+**ARDL(5,5)**
+
+*
+Fitting a autoregressive distributed lag models for **multiple predictors** with respect to dependent variable **Weekly mortality** (p=1, q=4).
+
+```{r}
+ardldlm_14 = ardlDlm(y =as.vector(mortality.ts), x=as.vector(temp.ts)  + as.vector(chem_1.ts)  + as.vector(chem_2.ts)  + as.vector(particle.size.ts),p = 1, q =4)
+summary(ardldlm_14)
+```
+
+The above model of the autoregressive distributed lag model has p=1 and q=4, the Y.3, and Y.4 attributes has no consequential terms at the 5% level of significance. The adjusted R-squared of the above model is 0.7103, indicating that this only explains 71.03 percent of the variability in the model. The whole model has a p-value of 2.2e-16, which is less than 0.05, which shows that it is statistically significant.
+
+```{r}
+checkresiduals(ardldlm_14$model)
+```
+
+
+```{r}
+shapiro.test(residuals(ardldlm_14$model))
+```
+
+
+The residual graphs for the above model are shown in ***Figure 25:***
+
+*
+The time series plot clearly shows that the residuals are not randomly distributed.
+*
+We may determine from the ACF plot that there is serial correlation as well as seasonality in the residuals.
+*
+Since the p-value is less than 0.05, the Beusch-Godfrey test maintains serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals a breach of the normalcy assumptions.
+*
+Since the p-value is < 0.05 we reject the null hypothesis(H0). This implies that errors are not normally distributed. Hence assumption is violated.
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_ardldlm_14=vif(ardldlm_14$model)
+vif_ardldlm_14
+```
+
+
+```{r}
+vif_ardldlm_14>10
+```
+
+
+According to the VIF values, with p=1, q=4 does not have multicollinearity problem.
+
+*
+Fitting a autoregressive distributed lag models for **multiple predictors** with respect to dependent variable **Weekly mortality** (p=2, q=4).
+
+
+```{r}
+ardldlm_24 = ardlDlm(y =as.vector(mortality.ts), x=as.vector(temp.ts)  + as.vector(chem_1.ts)  + as.vector(chem_2.ts)  + as.vector(particle.size.ts),p = 2, q =4)
+summary(ardldlm_24)
+```
+The above model of the autoregressive distributed lag model has p=2 and q=4, the X.2, Y.3, and Y.4 attributes has no consequential terms at the 5% level of significance. The adjusted R-squared of the above model is .7099, indicating that this only explains 70.99 percent of the variability in the model. The whole model has a p-value of 2.2e-16, which is less than 0.05, which shows that it is statistically significant.
+
+
+```{r}
+checkresiduals(ardldlm_24$model)
+```
+
+
+```{r}
+ shapiro.test(residuals(ardldlm_24$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 26:***
+
+*
+The time series plot clearly shows that the residuals are not randomly distributed.
+*
+We may determine from the ACF plot that there is serial correlation as well as seasonality in the residuals.
+*
+Since the p-value is less than 0.05, the Beusch-Godfrey test maintains serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals a breach of the normalcy assumptions.
+*
+Since the p-value is < 0.05 we reject the null hypothesis(H0). This implies that errors are not normally distributed. Hence assumption is violated.
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_ardldlm_24=vif(ardldlm_24$model)
+vif_ardldlm_24
+```
+
+
+```{r}
+vif_ardldlm_24>10
+```
+
+According to the VIF values, with p=2, q=4 does not have multicollinearity problem.
+
+*
+Fitting a autoregressive distributed lag models for **multiple predictors** with respect to dependent variable **Weekly mortality** (p=3, q=4).
+
+```{r}
+ardldlm_34 = ardlDlm(y =as.vector(mortality.ts), x=as.vector(temp.ts)  + as.vector(chem_1.ts)  + as.vector(chem_2.ts)  + as.vector(particle.size.ts),p = 3, q =4)
+summary(ardldlm_34)
+```
+
+The above model of the autoregressive distributed lag model has p=3 and q=4, the X.t, X.1, Y.1 and Y.2 attributes has consequential terms at the 5% level of significance. The adjusted R-squared of the above model is 0.7094, indicating that this only explains 70.94 percent of the variability in the model. The whole model has a p-value of 2.2e-16, which is less than 0.05, which shows that it is statistically significant.
+
+```{r}
+checkresiduals(ardldlm_34$model)
+```
+
+```{r}
+ shapiro.test(residuals(ardldlm_34$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 27:***
+
+*
+The time series plot clearly shows that the residuals are not randomly distributed.
+*
+We may determine from the ACF plot that there is serial correlation as well as seasonality in the residuals.
+*
+Since the p-value is less than 0.05, the Beusch-Godfrey test maintains serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals a breach of the normalcy assumptions.
+*
+Since the p-value is < 0.05 we reject the null hypothesis(H0). This implies that errors are not normally distributed. Hence assumption is violated.
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_ardldlm_34=vif(ardldlm_34$model)
+vif_ardldlm_34
+```
+
+
+```{r}
+vif_ardldlm_34>10
+```
+
+According to the VIF values, with p=3, q=4 does not have multicollinearity problem.
+
+*
+Fitting a autoregressive distributed lag models for **multiple predictors** with respect to dependent variable **Weekly mortality** (p=4, q=4).
+
+
+```{r}
+ardldlm_44 = ardlDlm(y =as.vector(mortality.ts), x=as.vector(temp.ts)  + as.vector(chem_1.ts)  + as.vector(chem_2.ts)  + as.vector(particle.size.ts),p = 4, q =4)
+summary(ardldlm_44)
+```
+
+The above model of the autoregressive distributed lag model has p=4 and q=4, the X.t, X.1, X.4, Y.1 and Y.2 attributes has consequential terms at the 5% level of significance. The adjusted R-squared of the above model is 0.7189, indicating that this only explains 71.89 percent of the variability in the model. The whole model has a p-value of 2.2e-16, which is less than 0.05, which shows that it is statistically significant.
+
+
+```{r}
+checkresiduals(ardldlm_44$model)
+```
+
+
+```{r}
+ shapiro.test(residuals(ardldlm_44$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 28:***
+
+*
+The time series plot clearly shows that the residuals are not randomly distributed.
+*
+We may determine from the ACF plot that there is serial correlation as well as seasonality in the residuals.
+*
+Since the p-value is less than 0.05, the Beusch-Godfrey test maintains serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals a breach of the normalcy assumptions.
+*
+Since the p-value is < 0.05 we reject the null hypothesis(H0). This implies that errors are not normally distributed. Hence assumption is violated.
+
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_ardldlm_44=vif(ardldlm_44$model)
+vif_ardldlm_44
+```
+
+
+```{r}
+vif_ardldlm_44>10
+```
+
+According to the VIF values, with p=4, q=4 does not have multicollinearity problem.
+
+
+*
+Fitting a autoregressive distributed lag models for **multiple predictors** with respect to dependent variable **Weekly mortality** (p=5, q=5).
+
+```{r}
+ardldlm_55 = ardlDlm(y =as.vector(mortality.ts), x=as.vector(temp.ts)  + as.vector(chem_1.ts)  + as.vector(chem_2.ts)  + as.vector(particle.size.ts),p = 5, q =5)
+summary(ardldlm_55)
+```
+
+The above model of the autoregressive distributed lag model has p=5 and q=5, the X.t, X.1, X.3, Y.1 and Y.2 attributes has consequential terms at the 5% level of significance. The adjusted R-squared of the above model is 0.7185, indicating that this only explains 71.85 percent of the variability in the model. The whole model has a p-value of 2.2e-16, which is less than 0.05, which shows that it is statistically significant.
+
+
+```{r}
+checkresiduals(ardldlm_55$model)
+```
+
+
+```{r}
+shapiro.test(residuals(ardldlm_55$model))
+```
+
+
+The residual graphs for the above model are shown in ***Figure 29:***
+
+*
+The time series plot clearly shows that the residuals are not randomly distributed.
+*
+We may determine from the ACF plot that there is serial correlation as well as seasonality in the residuals.
+*
+Since the p-value is less than 0.05, the Beusch-Godfrey test maintains serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals a breach of the normalcy assumptions.
+*
+Since the p-value is < 0.05 we reject the null hypothesis(H0). This implies that errors are not normally distributed. Hence assumption is violated.
+
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_ardldlm_55=vif(ardldlm_55$model)
+vif_ardldlm_55
+```
+
+
+```{r}
+vif_ardldlm_55>10
+```
+
+
+*
+According to the VIF values, with p=5, q=5 does not have multicollinearity problem.
+
+
+Therefore, we may infer that none of the models from the time series regression method successfully captured the autocorrelation and seasonality in the series.
+
+*
+The data frame has been constructed to contain the model accuracy values, such as AIC/BIC and MASE, from the models that have been fitted so far.
+
+```{r}
+model_dlm <- data.frame(Model=character(),MASE=numeric(),
+                           BIC= numeric(),AICC=numeric(),AIC=numeric())
+model_dlm = rbind(model_dlm,cbind(Model="Finite DLM",
+                                               AIC = AIC(finite_DLM),
+                                              BIC = BIC(finite_DLM),
+                                              MASE= MASE(finite_DLM)
+))
+model_dlm = rbind(model_dlm,cbind(Model="Polynomial DLM",
+                                               BIC = BIC(poly_DLM),
+                                               AIC = AIC(poly_DLM),
+                                              MASE= MASE(poly_DLM)
+                                              ))
+model_dlm = rbind(model_dlm,cbind(Model="Koyck Model",
+                                               AIC = AIC(Koyck_model),
+                                      BIC = BIC(Koyck_model),
+                                              MASE= MASE(Koyck_model)
+                                              ))
+model_dlm_ = rbind(model_dlm,cbind(Model="autoregressive_dlm_14",
+                                               AIC = AIC(ardldlm_14),
+                                      BIC = BIC(ardldlm_14),
+                                              MASE= MASE(ardldlm_14)
+                                              ))
+model_dlm = rbind(model_dlm,cbind(Model="autoregressive_dlm_24",
+                                               AIC = AIC(ardldlm_24),
+                                     BIC = BIC(ardldlm_24),
+                                              MASE= MASE(ardldlm_24)
+                                              ))
+model_dlm = rbind(model_dlm,cbind(Model="autoregressive_dlm_34",
+                                               AIC = AIC(ardldlm_34),
+                                     BIC = BIC(ardldlm_34),
+                                              MASE= MASE(ardldlm_34)
+                                              ))
+model_dlm = rbind(model_dlm,cbind(Model="autoregressive_dlm_44",
+                                               AIC = AIC(ardldlm_44),
+                                     BIC = BIC(ardldlm_44),
+                                              MASE= MASE(ardldlm_44)
+                                              ))
+model_dlm = rbind(model_dlm,cbind(Model="autoregressive_dlm_55",
+                                               AIC = AIC(ardldlm_55),
+                                     BIC = BIC(ardldlm_55),
+                                              MASE= MASE(ardldlm_55)
+                                              ))
+
+
+sortScore(model_dlm,score = "mase")
+
+```
+
+### Dynamic Lag Models
+
+A distributed-lag model is a dynamic model in which the influence of a regressor x on y is spread out across time rather than occurring all at once.
+
+```{r}
+dynlagmod_1 = dynlm(mortality.ts~as.vector(temp.ts) + as.vector(chem_1.ts) + as.vector(chem_1.ts) + as.vector(particle.size.ts) + L(mortality.ts,k=1)+season(mortality.ts))
+summary(dynlagmod_1)
+```
+
+At 5% level of significance,
+*
+The seasonal effects are insignificant.
+*
+The influence of the original series lag and the overall  model is significant.
+*
+For this model, we obtained a high adjusted R-square which is 70.13%.
+
+```{r}
+checkresiduals(dynlagmod_1)
+```
+
+The residual graphs for the above model are shown in ***Figure 30:***
+
+*
+The time series plot clearly shows that the errors are not randomly distributed.
+*
+The ACF plot has a large number of highly significant lags as well as a wave pattern at seasonal lags, indicating that autocorrelation and seasonality are still present in the residuals.
+*
+Since the p-value is less than 0.05, the Beusch-Godfrey test maintains serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals a breach of the normalcy assumptions.
+
+
+
+```{r}
+dynlagmod_2 = dynlm(mortality.ts ~as.vector(temp.ts) + as.vector(chem_1.ts) + as.vector(chem_1.ts) + as.vector(particle.size.ts) +L(mortality.ts,k=1)+L(mortality.ts,k=2)+season(mortality.ts))
+summary(dynlagmod_2)
+```
+
+
+At 5% level of significance,
+*
+The seasonal effects are insignificant.
+*
+The effects of both lags of the original series and the overall model is significant.
+*
+For this model, we obtained a high adjusted R-square which is 75.07%.
+
+```{r}
+checkresiduals(dynlagmod_2)
+```
+
+The residual graphs for the above model are shown in ***Figure 31:***
+
+*
+The time series plot clearly shows that the errors are not randomly distributed.
+*
+The ACF plot has a large number of highly significant lags, indicating that autocorrelation and seasonality are still present in the residuals.
+*
+Since the p-value is greater than 0.05, the Beusch-Godfrey test does not maintain serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals a breach of the normalcy assumptions.
+
+
+```{r}
+dynlagmod_3 = dynlm(mortality.ts ~as.vector(temp.ts) + as.vector(chem_1.ts) + as.vector(chem_1.ts) + as.vector(particle.size.ts) +L(mortality.ts,k=1)+L(mortality.ts,k=2)+ L(mortality.ts,k=3) +season(mortality.ts))
+summary(dynlagmod_3)
+```
+
+
+
+At 5% level of significance,
+*
+The seasonal effects are insignificant.
+* 
+The effects of both lags of the original series and the overall model is significant.
+*
+For this model, we obtained a high adjusted R-square which is 75.08%.
+
+
+```{r}
+checkresiduals(dynlagmod_3)
+```
+
+The residual graphs for the above model are shown in ***Figure 32:***
+
+*
+The time series plot clearly shows that the errors are not randomly distributed.
+*
+The ACF plot has a large number of highly significant lags, indicating that autocorrelation and seasonality are still present in the residuals.
+*
+Since the p-value is greater than 0.05, the Beusch-Godfrey test does not maintain serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals a breach of the normalcy assumptions.
+
+
+```{r}
+dynlagmod_4 = dynlm(mortality.ts ~as.vector(temp.ts) + as.vector(chem_1.ts) + as.vector(chem_1.ts) + as.vector(particle.size.ts) +L(mortality.ts,k=1)+L(mortality.ts,k=2)+ L(mortality.ts,k=3)  + L(mortality.ts,k=4)+ L(mortality.ts,k=5)+season(mortality.ts))
+summary(dynlagmod_4)
+```
+
+
+At 5% level of significance,
+*
+The original series of  is insignificant
+*
+The seasonal effects are insignificant.
+* 
+The effects of both lags of the original series and the overall model is insignificant.
+*
+For this model, we obtained a high adjusted R-square which is 75.04%.
+
+
+```{r}
+checkresiduals(dynlagmod_4)
+```
+
+The residual graphs for the above model are shown in ***Figure 33:***
+
+*
+The time series plot clearly shows that the errors are not randomly distributed.
+*
+The ACF plot has a large number of highly significant lags as well as a wave pattern at seasonal lags, indicating that autocorrelation and seasonality are still present in the residuals.
+*
+Since the p-value is less than 0.05, the Beusch-Godfrey test maintains serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals a breach of the normalcy assumptions.
+
+The data frame has been constructed to contain the Dynamic lag models values, such as AIC/BIC, and then sorted to its lowest AIC and BIC values. (Note:There is no MASE value in dynamic lag models.)
+
+```{r}
+
+model_dlm_1 <- data.frame(Model=character(),MASE=numeric(),
+                           BIC= numeric(),AICC=numeric(),AIC=numeric())
+
+
+model_dlm_1 = rbind(model_dlm_1,cbind(Model="dynlagmod_1",
+                                               AIC = AIC(dynlagmod_1),
+                                              BIC = BIC(dynlagmod_1)
+                                      ))
+
+model_dlm_1 = rbind(model_dlm_1,cbind(Model="dynlagmod_2",
+                                               BIC = BIC(dynlagmod_2),
+                                               AIC = AIC(dynlagmod_2)
+                                              ))
+model_dlm_1 = rbind(model_dlm_1,cbind(Model="dynlagmod_3",
+                                               AIC = AIC(dynlagmod_3),
+                                      BIC = BIC(dynlagmod_3)
+                                              ))
+model_dlm_1 = rbind(model_dlm_1,cbind(Model="dynlagmod_4",
+                                               AIC = AIC(dynlagmod_4),
+                                      BIC = BIC(dynlagmod_4)
+                                              ))
+#model_dlm_1 = rbind(model_dlm_1,cbind(Model="dynlagmod_5",
+                                               #AIC = AIC(dynlagmod_5),
+                                     # BIC = BIC(dynlagmod_5)
+                                        #      ))
+
+model_dlm_1
+sortScore(model_dlm_1,score = "aic")
+
+```
+
+Here model 4 of dynamic lag models has the lowest AIC and BIC values which are AIC= 3198.293 and BIC= 3457.306.
+
+### Exponential smoothing methods
+
+*
+Exponential smoothing will be another forecasting approach we will explore. We will only evaluate models with either additive or multiplicative seasonality since we have discovered a substantial seasonal component in the solar radiation series for which we wish to make predictions.
+*
+Given that there is no trend, the models that contain seasonality components are (Additive or Multiplicative) and may include the error term, resulting in the following possible models:
+*
+No Trend, Additive Seasonality.
+*
+No Trend, Additive Seasonality, Damped.
+*
+No Trend, Multiplicative Seasonality.
+*
+No Trend, Multiplicative Seasonality, Damped.
+
+
+Fitting Residuals from Holt−Winters' additive method
+
+```{r}
+fit_1<- holt(mortality.ts, seasonal="additive", h=4*frequency(mortality.ts))
+summary(fit_1)
+```
+
+```{r}
+checkresiduals(fit_1)
+```
+
+```{r}
+shapiro.test(residuals(fit_1$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 34:***
+
+*
+MASE of this model is 0.687417.
+*
+The time series plot clearly shows that the residuals are not randomly distributed also changing variance observed.
+*
+The ACF plot has a large number of highly significant lags as well as a wave pattern at seasonal lags, indicating that autocorrelation and seasonality are still present in the residuals.
+*
+Since the p-value is less than 0.05, the Ljung-Box test maintains serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+Fitting Residuals from Holt−Winters' multiplicative method
+
+```{r}
+fit_3 <- holt(mortality.ts,seasonal="multiplicative", h=4*frequency(mortality.ts))
+summary(fit_3) 
+```
+
+
+```{r}
+checkresiduals(fit_3)
+```
+
+```{r}
+shapiro.test(residuals(fit_3$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 35:***
+
+*
+MASE of this model is 0.687417.
+*
+The time series plot clearly shows that the residuals are not randomly distributed also changing variance observed.
+*
+The ACF plot has a large number of highly significant lags as well as a wave pattern at seasonal lags, indicating that autocorrelation and seasonality are still present in the residuals.
+*
+Since the p-value is less than 0.05, the Ljung-Box test maintains serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+Fitting Residuals from Damped Holt−Winters' additive method
+
+```{r}
+fit_4 <- holt(mortality.ts,seasonal="additive",damped = TRUE, h=4*frequency(mortality.ts)) 
+summary(fit_4)
+```
+
+
+```{r}
+checkresiduals(fit_4)
+```
+
+```{r}
+shapiro.test(residuals(fit_4$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 36:***
+
+*
+MASE of this model is 0.687107.
+*
+The time series plot clearly shows that the residuals are not randomly distributed also changing variance observed.
+*
+The ACF plot has a large number of highly significant lags as well as a wave pattern at seasonal lags, indicating that autocorrelation and seasonality are still present in the residuals.
+*
+Since the p-value is less than 0.05, the Ljung-Box test maintains serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+Fitting Residuals from damped Holt−Winters' multiplicative method
+
+```{r}
+fit_5 <- holt(mortality.ts,seasonal="multiplicative", damped = TRUE ,h=4*frequency(mortality.ts))
+summary(fit_5) 
+```
+
+```{r}
+checkresiduals(fit_5)
+```
+```{r}
+shapiro.test(residuals(fit_5$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 37:***
+
+*
+MASE of this model is 0.687107.
+*
+The time series plot clearly shows that the residuals are not randomly distributed also changing variance observed.
+*
+The ACF plot has a large number of highly significant lags as well as a wave pattern at seasonal lags, indicating that autocorrelation and seasonality are still present in the residuals.
+*
+Since the p-value is less than 0.05, the Ljung-Box test maintains serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+The data frame has been constructed to contain the exponential smoothing models values, such as AIC/BIC and MASE, from the models that have been fitted for the same.
+
+```{r}
+model_expo <- data.frame(Model=character() , MASE=numeric() ,
+                           BIC= numeric() , AICC=numeric() , AIC=numeric())
+
+model_expo = rbind(model_expo,cbind(Model="additive_seasonality",MASE= accuracy(fit_1)[6],
+                                               AIC = fit_1$model$aic,
+                                              BIC = fit_1$model$bic
+                                      ))
+
+
+model_expo = rbind(model_expo,cbind(Model="multiplicative_ses",MASE= accuracy(fit_3)[6],
+                                               AIC = fit_3$model$aic,
+                                              BIC = fit_3$model$bic
+                                      ))
+
+model_expo = rbind(model_expo,cbind(Model="additive_seasonality_damped",MASE= accuracy(fit_4)[6],
+                                              AIC = fit_4$model$aic,
+                                              BIC = fit_4$model$bic
+                                      ))
+
+
+model_expo = rbind(model_expo,cbind(Model="multiplicative_ses_damped",MASE= accuracy(fit_5)[6],
+                                               AIC = fit_5$model$aic,
+                                              BIC = fit_5$model$bic
+                                      ))
+
+model_expo
+
+#sortScore(model_expo,score = "mase")
+```
+
+
+### State-space models
+
+There are two state-space models for each exponential smoothing approach (with additive or multiplicative errors).
+We introduced state-space variants, including seasonality (NOTE: some combinations are excluded due to their resistance problems).
+
+Fitting additive error, additive trend and, no seasonality model.
+
+```{r}
+fit.mortality_AAN = ets(y= as.vector(mortality.ts), model = "AAN") 
+summary(fit.mortality_AAN)
+```
+
+
+```{r}
+checkresiduals(fit.mortality_AAN)
+```
+
+The residual graphs for the above model are shown in ***Figure 38:***
+
+*
+MASE of this model is 0.8649647.
+*
+The time series plot clearly shows that the residuals are not randomly distributed.
+*
+The ACF plot has a large number of highly significant lags, indicating that autocorrelation and seasonality are still present in the residuals.
+*
+Since the p-value is less than 0.05, the Ljung-Box test maintains serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals a breach of the normalcy assumptions.
+
+Fitting multiplicative error, no trend and, no seasonality model.
+
+```{r}
+fit11.mortality_MNN = ets(mortality.ts, model = "MNN") 
+summary(fit11.mortality_MNN)
+```
+
+
+```{r}
+checkresiduals(fit11.mortality_MNN)
+```
+
+
+The residual graphs for the above model are shown in ***Figure 39:***
+
+*
+MASE of this model is 0.6879431.
+*
+The time series plot clearly shows that the residuals are not randomly distributed.
+*
+The ACF plot has a large number of highly significant lags, indicating that autocorrelation and seasonality are still present in the residuals.
+*
+Since the p-value is less than 0.05, the Ljung-Box test maintains serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals a breach of the normalcy assumptions.
+
+
+The auto ETS model is applied to check what the software's automatically recommended model is.
+
+```{r}
+auto_fit_t1 <- ets(mortality.ts)
+summary(auto_fit_t1)
+
+```
+
+ETS(M,N,N) is the model that is automatically proposed. It is a model with multiplicative errors, no  trend, and no seasonality.
+
+```{r}
+checkresiduals(auto_fit_t1)
+```
+
+The residual graphs for the above model are shown in ***Figure 40:***
+
+*
+MASE of this model is 0.6879431.
+*
+The time series plot clearly shows that the residuals are not randomly distributed.
+*
+The ACF plot has a large number of highly significant lags, indicating that autocorrelation and seasonality are still present in the residuals.
+*
+Since the p-value is less than 0.05, the Ljung-Box test maintains serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals a breach of the normalcy assumptions.
+
+
+The data frame has been constructed to contain the state space models values, such as AIC/BIC and MASE, from the models that have been fitted for the same.
+
+```{r}
+model_SSM <- data.frame(Model=character() , MASE=numeric() ,
+                           BIC= numeric() , AICC=numeric() , AIC=numeric())
+
+model_SSM = rbind(model_SSM,cbind(Model="AAN", MASE= accuracy(fit.mortality_AAN)[6],
+                                               AIC = fit.mortality_AAN$aic,
+                                               BIC = fit.mortality_AAN$bic))
+
+model_SSM = rbind(model_SSM,cbind(Model="MNN", MASE= accuracy(fit11.mortality_MNN)[6],
+                                               AIC = fit11.mortality_MNN$aic,
+                                               BIC = fit11.mortality_MNN$bic))
+
+model_SSM = rbind(model_SSM,cbind(Model="Auto", MASE= accuracy(auto_fit_t1)[6],
+                                               AIC = auto_fit_t1$aic,
+                                               BIC = auto_fit_t1$bic))
+
+
+
+model_SSM
+
+```
+
+The data frame has been constructed to contain the Overall model values, such as AIC/BIC and MASE, from the models that have been fitted so far, it is sorted by ascending MASE value. As a result of this table, it will be obvious which models have the lowest MASE.
+
+```{r}
+
+best_overall_model <- rbind(model_dlm,model_expo,model_SSM)
+
+sortScore(best_overall_model,score = "mase")
+
+```
+
+In terms of MASE, the best overall model table will be taken into consideration to analyze all approaches we endeavored throughout the modeling step. The model that has the lowest MASE value is Damped additive method.
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# Task 2 - The task is to represent Time series analysis, model the FFD (first flowering day), and provide the best FFD 4-year projections for the FFD series.
+
+The objective of this task is to predict the first blooming day series based on climate parameters such as rainfall (rain), temperature (temp), radiation level (rad), and relative humidity (RH). The research is a annual data collection that investigates the impact of long-term climate on the FFD of 81 plant species from 1984 to 2014.
+
+*
+Reading the dataset.
+
+```{r}
+ffd_1 <- read.csv("/Users/zuaibshaikh/Desktop/SEM 4/Forecasting/Final Project/FFD  .csv")
+
+ffd= ffd_1[,2:6] # considering all the impactfull columns
+head(ffd)
+
+```
+
+*
+Checking the class of the attributes
+
+```{r}
+class(ffd$Temperature)
+class(ffd$Rainfall)
+class(ffd$Radiation)
+class(ffd$RelHumidity)
+class(ffd$FFD)
+```
+
+*
+converting the character data.frame to numeric.
+
+```{r}
+ffd$FFD=as.numeric(as.integer(ffd$FFD))
+class(ffd$FFD)
+```
+
+*
+converting dataset to ts object
+
+```{r}
+ffd_temp.ts=ts(ffd$Temperature,start =1984, frequency = 1)
+head(ffd_temp.ts)
+
+ffd_rainfall.ts <- ts(ffd$Rainfall,start = 1984,frequency = 1)
+head(ffd_rainfall.ts)
+
+ffd_radiation.ts= ts(ffd$Radiation, start = 1984,frequency = 1)
+head(ffd_radiation.ts)
+
+ffd_humidity.ts = ts(ffd$RelHumidity, start = 1984,frequency = 1)
+head(ffd_humidity.ts)
+
+ffd_FFD.ts = ts(ffd$FFD, start = 1984,frequency = 1)
+head(ffd_FFD.ts)
+
+ffd.ts= ts(ffd,start = 1984,frequency = 1)
+head(ffd.ts)
+```
+
+## The existence of non-stationarity in dataset.
+
+The aim here is to check whether the time series is stationary or non-stationary. The approach to monitoring this is with an ACF and PACF performance. The uniqueness of this is achieved by running a unit root test. The two tests are the enlarged Dickey-Fuller (ADF) and Phillips-Perron (PP).
+
+***The Descriptive Analysis***
+
+Five major patterns from a time series plot could be obtained from:
+
+*
+Trend.
+*
+Seasonality.
+*
+Changing Variation.
+*
+Behaviour. 
+*
+Change Point.
+
+Plotting graphs for the converted time series characteristics. Further, we will take a look at how each dataset feature performs the specific patterns mentioned above.
+
+```{r}
+plot(ffd_temp.ts, xlab='Year', main = " Figure 1. Time series plot of annual FFD temperature series")
+
+```
+
+From ***Figure 1*** of time series plot for annual FFD temperature series, we can interpret as follows:
+
+1. **Trend -** The plot is showing there is no (unpredictive) trend.
+2. **Seasonality -** No seasonality is noticeable.
+3. **Changing Variation -** Unable to see any fluctuations that are greater or lesser or both consecutively,
+hence change in variance is not found.
+4. **Behaviour –** The series shows a moving average (up and down) behaviour.
+5. **Change Point -** Two interventions appear to occur in 1988 and 2006.
+
+
+```{r}
+plot(ffd_rainfall.ts, xlab='Year', main = " Figure 2. Time series plot of annual FFD rainfall series")
+```
+
+From ***Figure 2*** of time series plot for annual FFD rainfall series, we can interpret as follows:
+
+1. **Trend -** The plot is showing there is no trend.
+2. **Seasonality -** No seasonality is noticeable.
+3. **Changing Variation -** Unable to see any fluctuations that are greater or lesser or both consecutively,
+hence change in variance is not found.
+4. **Behaviour –** The series shows a moving average (up and down) behaviour.
+5. **Change Point -** An intervention appears to take place in the year 1997.
+
+```{r}
+plot(ffd_radiation.ts, xlab='Year', main = " Figure 3. Time series plot of annual FFD radiation sereis")
+
+```
+
+From ***Figure 3*** of time series plot for annual FFD radiation series, we can interpret as follows:
+
+1. **Trend -** The plot is showing kind of upward trend.
+2. **Seasonality -** No seasonality is noticeable.
+3. **Changing Variation -** Unable to see any fluctuations that are greater or lesser or both consecutively,
+hence change in variance is not found.
+4. **Behaviour –** The series shows a moving average (up and down) behaviour.
+5. **Change Point -** An intervention appears to take place in the year 1992.
+
+```{r}
+plot(ffd_humidity.ts, xlab='Year', main = " Figure 4. Time series plot of annual FFD humidity series")
+```
+
+From ***Figure 4*** of time series plot for annual FFD humidity series, we can interpret as follows:
+
+1. **Trend -** The plot is showing no trend.
+2. **Seasonality -** No seasonality is noticeable.
+3. **Changing Variation -** Unable to see any fluctuations that are greater or lesser or both consecutively,
+hence change in variance is not found.
+4. **Behaviour –** The series shows a moving average (up and down) behaviour.
+5. **Change Point -**  Three interventions appear to occur in 1900, 2000 and, 2010.
+
+
+```{r}
+plot(ffd_FFD.ts, xlab='Year', main = " Figure 5. Time series plot of annual FFD series")
+```
+
+From ***Figure 5*** of time series plot for annual FFD series, we can interpret as follows:
+
+1. **Trend -** The plot is showing no trend.
+2. **Seasonality -** No seasonality is noticeable.
+3. **Changing Variation -** Unable to see any fluctuations that are greater or lesser or both consecutively,
+hence change in variance is not found.
+4. **Behaviour –** The series shows a moving average (up and down) behaviour.
+5. **Change Point -**  An intervention appear to occur in 1999.
+
+*
+In order to precisely depict the secondary FFD series alongside the explicative all the rest response series in the same figure, we pleasure normalize the data. The code below gives a time series tale to investigate the series relationship.
+
+```{r}
+ffd.scaled = scale(ffd.ts)
+plot(ffd.scaled, plot.type="s",col = c("black", "red", "blue", "green","brown"), main = "Figure 6. Annual FFD data series")
+legend("topleft",lty=1, text.width =5, col=c("black", "red", "blue", "green","brown"), c("Temperature", "Rainfall", "Radiation", "Humidity","FFD"))
+```
+
+From **figure 6** we can infer all of the above five-time series drawn together after scaling and centering.
+
+### Analysis of stationarity in data set
+
+*
+Plotting ACF/PACF plots for all attributes and performing ADF test for the same.
+
+```{r}
+acf(ffd_temp.ts, lag.max = 48, main="Figure 7. Sample ACF for annual FFD temerature series")
+```
+
+```{r}
+Pacf(ffd_temp.ts, lag.max = 48, main="Figure 8. Sample PACF for annual FFD temerature series")
+```
+
+
+```{r}
+adf.test(ffd_temp.ts)
+```
+
+```{r}
+adf.ffd_temp = ur.df(ffd_temp.ts, type = "none", lags = 1, selectlags = "AIC")
+summary(adf.ffd_temp)
+```
+
+```{r}
+pp.ffd_temp = ur.pp(ffd_temp.ts, type = "Z-alpha", lags = "short")
+summary(pp.ffd_temp)
+```
+
+The **ACF/PACF** plot for the annual FFD temperature series is shown in ***Figure 7*** & ***Figure 8*** which tells us about:
+
+*
+A wave-like pattern in the ACF plot of ffd temperature series, indicating that there is no trend.
+*
+The ACF plot revealed no seasonality.
+*
+From PACF plot we can see there are no high significant lags which indicate all the points lie within the significant line.
+*
+The augmented Dickey-Fuller test yields a p-value of 0.6953 which is greater than 0.05, indicating that the null hypothesis of non-stationarity was not rejected.
+
+```{r}
+acf(ffd_rainfall.ts , lag.max = 48, main="Figure 9. Sample ACF for annual FFD rainfall series")
+```
+
+```{r}
+Pacf(ffd_rainfall.ts, lag.max = 48, main="Figure 10. Sample PACF for annual FFD rainfall series")
+```
+
+
+```{r}
+adf.test(ffd_rainfall.ts)
+```
+
+```{r}
+adf.ffd_rainfall = ur.df(ffd_rainfall.ts, type = "none", lags = 1, selectlags = "AIC")
+summary(adf.ffd_rainfall)
+```
+
+```{r}
+pp.ffd_rainfall = ur.pp(ffd_rainfall.ts, type = "Z-alpha", lags = "short")
+summary(pp.ffd_rainfall)
+```
+
+The **ACF/PACF** plot for the annual FFD rainfall series is shown in ***Figure 9*** & ***Figure 10*** which tells us about:
+
+*
+From the acf of annual FFD rainfall series we can indicate that there is no trend.
+*
+The ACF plot revealed no seasonality.
+*
+From PACF we can see there are no high significant lags which indicate all the points lie within the significant line.
+*
+The augmented Dickey-Fuller test yields a p-value of 0.4563 which is greater than 0.05, indicating that the null hypothesis of non-stationarity was not rejected.
+
+
+```{r}
+acf(ffd_radiation.ts , lag.max = 48, main="Figure 11. Sample ACF for annnual FFD radiation series")
+```
+
+```{r}
+Pacf(ffd_radiation.ts, lag.max = 48, main="Figure 12. Sample PACF for annual FFD radiation series")
+```
+
+
+```{r}
+adf.test(ffd_radiation.ts)
+```
+
+```{r}
+adf.ffd_radiation = ur.df(ffd_radiation.ts, type = "none", lags = 1, selectlags = "AIC")
+summary(adf.ffd_radiation)
+```
+
+```{r}
+pp.ffd_radiation = ur.pp(ffd_radiation.ts, type = "Z-alpha", lags = "short")
+summary(pp.ffd_radiation)
+```
+
+The **ACF/PACF** plot for the annual FFD radiation series is shown in ***Figure 11*** & ***Figure 12*** which tells us about:
+
+*
+A wave-like pattern in the ACF plot of ffd radiation series, indicating that there is no trend.
+*
+The ACF plot revealed no seasonality.
+*
+The PACF plot starts at lag 1 rather than lag 0. As we can see, it has a sharp cut-off after the fourth lag. In contrast to our ACF plot, we see no sinusoidal trend.
+*
+The augmented Dickey-Fuller test yields a p-value of 0.3052 which is greater than 0.05, indicating that the null hypothesis of non-stationarity was not rejected.
+
+
+```{r}
+acf(ffd_humidity.ts , lag.max = 48, main="Figure 13. Sample ACF for annual FFD humidity series")
+```
+
+```{r}
+Pacf(ffd_humidity.ts, lag.max = 48, main="Figure 14. Sample PACF for annual FFD humidity series")
+```
+
+
+```{r}
+adf.test(ffd_humidity.ts)
+```
+
+```{r}
+adf.ffd_humidity = ur.df(ffd_humidity.ts, type = "none", lags = 1, selectlags = "AIC")
+summary(adf.ffd_humidity)
+```
+
+```{r}
+pp.ffd_humidity = ur.pp(ffd_humidity.ts, type = "Z-alpha", lags = "short")
+summary(pp.ffd_humidity)
+```
+
+The **ACF/PACF** plot for the annual FFD humidity series is shown in ***Figure 13*** & ***Figure 14*** which tells us about:
+
+*
+A wave-like pattern in the ACF plot of ffd humidity series, indicating that there is no trend.
+*
+The ACF plot revealed no seasonality.
+*
+From the PACF plot we can say only one lag is touching the significant line.
+*
+The augmented Dickey-Fuller test yields a p-value of 0.2651 which is greater than 0.05, indicating that the null hypothesis of non-stationarity was not rejected.
+
+
+```{r}
+acf(ffd_FFD.ts, lag.max = 48, main="Figure 15. Sample ACF for FFD series")
+```
+
+```{r}
+Pacf(ffd_FFD.ts, lag.max = 48, main="Figure 16. Sample PACF for FFD series")
+```
+
+
+```{r}
+adf.test(ffd_FFD.ts)
+```
+
+```{r}
+adf.ffd_FFD = ur.df(ffd_FFD.ts, type = "none", lags = 1, selectlags = "AIC")
+summary(adf.ffd_FFD)
+```
+
+```{r}
+pp.ffd_FFD = ur.pp(ffd_FFD.ts, type = "Z-alpha", lags = "short")
+summary(pp.ffd_FFD)
+```
+
+The **ACF/PACF** plot for the annual FFD humidity series is shown in ***Figure 15*** & ***Figure 16*** which tells us about:
+
+*
+A wave-like pattern in the ACF plot of ffd humidity series, indicating that there is no trend.
+*
+The ACF plot revealed no seasonality.
+*
+From the PACF plot we can say only one lag is touching the significant line.
+*
+The augmented Dickey-Fuller test yields a p-value of 0.4294 which is greater than 0.05, indicating that the null hypothesis of non-stationarity was not rejected.
+
+### Analysing the impact of the components of a time series data on the given dataset.
+
+*
+Time-series key specifications are **Seasonality,** **Trend,** and **Remainder.**
+*
+It is critical to breaking down the time series into distinct components. This aids in the observation of individual impacts as well as historical actions on existing components. This decomposition may also be used to view and learn more about the components. 
+*
+Now let check lambda values to evaluate if transformation is necessary and then differentiation is needed before data is deconstructed. 
+
+```{r}
+# Checking the lamda values for all specific attributes
+ffd_temp_lamda = BoxCox.lambda(ffd_temp.ts, method = "loglik")
+ffd_temp_lamda
+
+ffd_rainfall_lambda = BoxCox.lambda(ffd_rainfall.ts, method = "loglik")
+ffd_rainfall_lambda
+
+ffd_radiation_lambda = BoxCox.lambda(ffd_radiation.ts, method = "loglik")
+ffd_radiation_lambda
+
+ffd_humidity_lambda = BoxCox.lambda(ffd_humidity.ts, method = "loglik")
+ffd_humidity_lambda
+
+
+ffd_FFD_lambda = BoxCox.lambda(ffd_FFD.ts, method = "loglik")
+ffd_FFD_lambda
+
+```
+
+
+A change of scale 2(Y^2) is necessary for the price of Temperature, rainfall, radiation  and, FFD since the value of lambda is approaching 2. Whereas humidity doesn't need any transformation because the lambda value is close to 0, but for better understanding, we will check its transformation.
+
+*
+Now let us calculate the temperature, rainfall, radiation, humidity and the FFD transformation.
+
+```{r}
+ffd_temp_lamda
+```
+
+```{r}
+Bc.ffd_temp=BoxCox(ffd_temp.ts, lambda = ffd_temp_lamda)
+plot(Bc.ffd_temp,ylab='ASX price Index',xlab='Year',type='o', main="Figure 17. Box-Cox Transformed FFD temperature series")
+```
+
+```{r}
+ffd_rainfall_lambda
+```
+
+```{r}
+Bc.ffd_rainfallp=BoxCox(ffd_rainfall.ts, lambda = ffd_rainfall_lambda)
+plot(Bc.ffd_rainfallp,ylab='ASX price Index',xlab='Year',type='o', main="Figure 18. Box-Cox Transformed FFD rainfall series")
+```
+
+```{r}
+ffd_radiation_lambda
+```
+
+```{r}
+Bc.ffd_radiation=BoxCox(ffd_radiation.ts, lambda = ffd_radiation_lambda)
+plot(Bc.ffd_radiation,ylab='ASX price Index',xlab='Year',type='o', main="Figure 19. Box-Cox Transformed FFD radiation series")
+```
+
+```{r}
+ffd_humidity_lambda
+```
+
+```{r}
+Bc.ffd_humidity=BoxCox(ffd_humidity.ts, lambda = ffd_humidity_lambda)
+plot(Bc.ffd_humidity,ylab='ASX price Index',xlab='Year',type='o', main="Figure 20. Box-Cox Transformed FFD humidity series")
+```
+
+```{r}
+ffd_FFD_lambda
+```
+
+```{r}
+Bc.ffd_FFD=BoxCox(ffd_FFD.ts, lambda = ffd_FFD_lambda)
+plot(Bc.ffd_FFD,ylab='ASX price Index',xlab='Year',type='o', main="Figure 21. Box-Cox Transformed FFD series")
+```
+
+We may conclude from the transformation that the series is not stationary. So, let’s evaluate the difference for all of the series right now.
+
+```{r}
+# Temperature differencing
+
+ffd_temp.diff = diff(ffd_temp.ts)
+plot(ffd_temp.diff ,ylab='ASX prices',xlab='Year',main = "Figure 22. Time series plot showing the initial difference in temperature series")
+
+```
+
+
+```{r}
+# Rainfall differencing
+
+ffd_rainfall.diff = diff(ffd_rainfall.ts)
+plot(ffd_rainfall.diff ,ylab='ASX prices',xlab='Year',main = "Figure 23. Time series plot showing the initial difference in rainfall series")
+
+```
+
+```{r}
+# Radiation differencing
+
+ffd_radiation.diff = diff(ffd_radiation.ts)
+plot(ffd_radiation.diff ,ylab='ASX prices',xlab='Year',main = "Figure 24. Time series plot showing the initial difference in radiation series")
+
+```
+
+```{r}
+# Humidity differencing
+
+ffd_humidity.diff = diff(ffd_humidity.ts)
+plot(ffd_humidity.diff ,ylab='ASX prices',xlab='Year',main = "Figure 25. Time series plot showing the initial difference in humidity series")
+```
+
+```{r}
+# FFD differencing
+
+ffd_FFD.diff = diff(ffd_FFD.ts)
+plot(ffd_FFD.diff ,ylab='ASX prices',xlab='Year',main = "Figure 26. Time series plot showing the initial difference in FFD series")
+
+```
+
+*
+After analyzing, we can say that the series’ pattern appears partially stationary. So, to be sure, let’s run and validate it with an ADF test on every one of the individuals.
+
+```{r, message=FALSE}
+adf.test(ffd_temp.diff)
+adf.test(ffd_rainfall.diff)
+adf.test(ffd_radiation.diff)
+adf.test(ffd_humidity.diff)
+adf.test(ffd_FFD.diff)
+```
+
+Now it is clear that variable temperature, radiation and humidity is still having non-stationarity. So, let’s evaluate the second differencing for all of the mentioned series right now.
+
+```{r}
+# Temperature second differencing
+ffd_temp.diff_2 = diff(ffd_temp.ts,differences = 2)
+plot(ffd_temp.diff_2 ,ylab='ASX prices',xlab='Year',main = "Figure 27. Time series plot showing the second difference in temperature series")
+
+```
+
+
+```{r}
+# Radiation second differencing
+
+ffd_radiation.diff_2 = diff(ffd_radiation.ts,differences = 2)
+plot(ffd_radiation.diff_2 ,ylab='ASX prices',xlab='Year',main = "Figure 28. Time series plot showing the second difference in radiation series")
+
+```
+
+```{r}
+# Humidity second differencing
+
+ffd_humidity.diff_2 = diff(ffd_humidity.ts,differences = 2)
+plot(ffd_humidity.diff_2 ,ylab='ASX prices',xlab='Year',main = "Figure 29. Time series plot showing the second difference in humidity series")
+```
+
+*
+Let’s run and validate the second differencing with an ADF test on every one of the individuals.
+
+```{r, message=FALSE}
+adf.test(ffd_temp.diff_2)
+adf.test(ffd_radiation.diff_2)
+adf.test(ffd_humidity.diff_2)
+```
+
+*
+Now, radiation varaible is still having non-stationarity. So, let’s evaluate the third differencing for the mentioned series right now.
+
+```{r}
+# Radiation Third differencing
+
+ffd_radiation.diff_3 = diff(ffd_radiation.ts,differences = 3)
+plot(ffd_radiation.diff_3 ,ylab='ASX prices',xlab='Year',main = "Figure 30. Time series plot showing the third difference in radiation series")
+
+```
+
+*
+Let’s run and validate the third differencing with an ADF test on every one of the individuals.
+
+```{r, message=FALSE}
+adf.test(ffd_radiation.diff_3)
+```
+
+*
+We infer that the differenced series is **stationary** at the 5% level of significance since the p-value is less than 0.05.
+
+## The Correlation matrix
+
+```{r}
+cor(ffd.ts)
+```
+
+
+From the above correlation matrix, we can infer that the ***temperature*** has a negative-weak correlation of -0.24793371, with the annual FFD series, the ***Rainfall*** has a a very weak correlation of 0.05069110, with the FFD series, the ***Radiation-2*** has a very weak correlation of 0.0467775, with the FFD series and, the ***RelHumidity*** has a negative weak correlation of -0.12850244 with the FFD series.
+
+Because the annual FFD series is estimated as a dependent variable, it occupies the y-axis. Such is compared to the other four variables.
+
+## Model Fitting - FFD vs Temperature
+
+### Fitting finite distributed lag models 
+
+To determine the model’s finite lag length, we build a loop that calculates accuracy metrics such as AIC/BIC and MASE for models with varying lag lengths and selects the model with the lowest values.
+
+```{r}
+
+for ( i in 1:10){
+  model11.1 = dlm(x = as.vector(ffd_temp.ts), y = as.vector(ffd_FFD.ts), q = i )
+  cat("q = ", i, "AIC = ", AIC(model11.1$model), "BIC = ", BIC(model11.1$model), "MASE =", MASE(model11.1)$MASE, "\n")
+}
+
+```
+According to the output of finite distributed lag, lag 8 has the lowest MASE, AIC, and BIC values which are MASE = 0.5377635, AIC =  224.2942 BIC = 236.7846. As a result, we provide a lag duration of (q=8).
+
+*
+Fitting a finite DLM with a lag of 8 and doing the diagostic checking for **Temperature** with respect to dependent variable **FFD**
+
+```{r}
+finite_DLM_1 <- dlm(x = as.vector(ffd_temp.ts), y = as.vector(ffd_FFD.ts), q = 8)
+summary(finite_DLM_1)
+```
+
+The above model of the finite distributed lag model has q=8, all lag weights in a predictor series are not statistically significant at the 5% level. The adjusted R-squared of the above model is -0.05959, indicating that this only explains -5.959 percent of the variability in the model. The whole model has a p-value of 0.578, which is greater than 0.05, which shows that it is not statistically significant.
+
+
+```{r}
+checkresiduals(finite_DLM_1$model)
+```
+```{r}
+shapiro.test(residuals(finite_DLM_1$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 31:***
+
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+Since the p-value is less than 0.05, the Beusch-Godfrey test maintains serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_dlm_1 =vif(finite_DLM_1$model)
+vif_dlm_1
+```
+
+
+```{r}
+vif_dlm_1 >10
+```
+
+*
+According to the VIF values, the above model with q=8 does not have a multicollinearity problem. 
+
+### Fitting polynomial distributed lag models 
+
+```{r}
+for(i in 1:10){
+        for(j in 1:5){
+                model_22.1 <- polyDlm(x = as.vector(ffd_temp.ts),y = as.vector(ffd_FFD.ts), q = i, k = j, show.beta = FALSE)
+                cat("q:",i,"k:",j, "AIC:",AIC(model_22.1$model), "BIC:", BIC(model_22.1$model),"MASE =", MASE(model_22.1)$MASE, "\n")
+        }
+}
+```
+
+According to the output of polynomial distributed lag model, lag =8 and k=5 has the lowest MASE, AIC, and BIC values which are MASE = 0.5487196 , AIC: 220.3549 BIC: 229.4388. As a result, we provide a lag duration of (q=8, k=5).
+
+*
+Fitting a polynomial DLM for**Temperature** with respect to dependent variable **FFD**
+
+```{r}
+poly_DLM_1 <- polyDlm(x = as.vector(ffd_temp.ts), y = as.vector(ffd_FFD.ts), q = 8, k = 5)
+summary(poly_DLM_1)
+```
+
+The above model of the polynomial distributed lag model has q=8 and k=5, all lag weights in a predictor series are not statistically significant at the 5% level. The adjusted R-squared of the above model is  0.05839, indicating that this only explains 5.839 percent of the variability in the model. The whole model has a p-value of 0.3433, which is greater than 0.05, which shows that it is not statistically significant.
+
+```{r}
+checkresiduals(poly_DLM_1$model)
+```
+
+```{r}
+shapiro.test(residuals(poly_DLM_1$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 32:***
+
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is greater than 0.05, the Beusch-Godfrey test does not maintain serial correlation at a 5% level of significance.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_poly_1 =vif(poly_DLM_1$model)
+vif_poly_1
+```
+
+
+```{r}
+vif_poly_1 >10
+```
+
+*
+According to the VIF values, the above model with q=8 and k=5 has a multicollinearity problem.
+
+### Fitting Koyck model 
+
+*
+Fitting a Koyck model for**Temperature** with respect to dependent variable **FFD**
+
+```{r}
+Koyck_model_1 = koyckDlm(x = as.vector(ffd_temp.ts) , y = as.vector(ffd_FFD.ts))
+summary(Koyck_model_1$model, diagnostics=TRUE)
+```
+
+*
+The above Koyck model states that there are no consequential terms at the 5% level of significance. The adjusted R-squared of the above model is  -0.4255, indicating that this only explains -42.55 percent of the variability in the model. The whole model has a p-value of 0.9301, which is greater than 0.05, which shows that it is not statistically significant.
+*
+We may conclude from the Wu-Hausman test (p-value greater than 0.05) that there is a no significant correlation between the descriptive variable and the error term at the 5% level.
+
+```{r}
+checkresiduals(Koyck_model_1$model)
+```
+
+```{r}
+shapiro.test(residuals(Koyck_model_1$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 33:***
+
+*
+The time series plot clearly shows a random trend.
+*
+The ACF plot has only one lag which is significant, indicating a slight presence of autocorrelation and seasonality in the residuals.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_loyck_1=vif(Koyck_model_1$model)
+vif_loyck_1
+```
+
+```{r}
+vif_loyck_1>10
+```
+
+*
+According to the VIF values, the above model does not have a multicollinearity problem. 
+
+### Fitting autoregressive distributed lag models
+
+Autoregressive distributed lag models are the last model type derived from the time series regression technique. To describe the parameters of ARDL(p,q), we build a loop that fits autoregressive distributed lag models for a variety of lag lengths and AR process orders and calculates accuracy metrics such as AIC/BIC and MASE.
+
+```{r}
+for (i in 1:5){
+  for(j in 1:5){
+    model_3 = ardlDlm(x = as.vector(ffd_temp.ts), y = as.vector(ffd_FFD.ts), p = i , q = j)
+    cat("p =", i, "q =", j, "AIC =", AIC(model_3$model), "BIC =", BIC(model_3$model), "MASE =", MASE(model_3)$MASE, "\n")
+ }
+}
+```
+
+According to the output of autoregressive distributed lag model, the lowest MASE, AIC, and BIC values which are MASE = 0.5872934 , AIC: 254.762, BIC: 271.1173 As a result, we provide a lag duration of (p=5,q=5).
+
+*
+Fitting a autoregressive distributed lag model for **Temperature** with respect to dependent variable **FFD**.
+
+```{r}
+ardldlm_t2_55 = ardlDlm(x = as.vector(ffd_temp.ts), y = as.vector(ffd_FFD.ts),p = 5, q =5)
+summary(ardldlm_t2_55)
+```
+
+The above model of the autoregressive distributed lag model has p=5 and q=5, all the attributes has no consequential terms at the 5% level of significance. The adjusted R-squared of the above model is -0.194, indicating that this only explains -19.4 percent of the variability in the model. The whole model has a p-value of  0.7761, which is greater than 0.05, which shows that it is not statistically significant.
+
+
+```{r}
+checkresiduals(ardldlm_t2_55)
+```
+
+```{r}
+shapiro.test(residuals(ardldlm_t2_55$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 34:***
+
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+Now checking the multicollinearity issue
+
+
+```{r}
+vif_ardldlm_t2_55=vif(ardldlm_t2_55$model)
+vif_ardldlm_t2_55
+```
+
+
+```{r}
+vif_ardldlm_t2_55>10
+```
+
+
+According to the VIF values, the above model does not have multicollinearity problem.
+
+## Model Fitting - FFD vs Rainfall
+
+### Fitting finite distributed lag models 
+
+To determine the model’s finite lag length, we build a loop that calculates accuracy metrics such as AIC/BIC and MASE for models with varying lag lengths and selects the model with the lowest values.
+
+```{r}
+
+for ( i in 1:5){
+  model111.1 = dlm(x = as.vector(ffd_rainfall.ts), y = as.vector(ffd_FFD.ts), q = i )
+  cat("q = ", i, "AIC = ", AIC(model111.1$model), "BIC = ", BIC(model111.1$model), "MASE =", MASE(model111.1)$MASE, "\n")
+}
+
+```
+
+According to the output of finite distributed lag, lag 5 has the lowest MASE, AIC, and BIC values which are MASE = 0.5808908, AIC =  246.1244 BIC =  256.1891. As a result, we provide a lag duration of (q=5).
+
+*
+Fitting a finite DLM with a lag of 8 and doing the diagostic checking for **Rainfall** with respect to dependent variable **FFD**
+
+```{r}
+finite_DLM_2 <- dlm(x = as.vector(ffd_rainfall.ts), y = as.vector(ffd_FFD.ts), q = 5)
+summary(finite_DLM_2)
+```
+
+The above model of the finite distributed lag model has q=5, all lag weights in a predictor series are not statistically significant at the 5% level. The adjusted R-squared of the above model is 0.0729, indicating that this only explains 7.29 percent of the variability in the model. The whole model has a p-value of 0.2931, which is greater than 0.05, which shows that it is not statistically significant.
+
+
+```{r}
+checkresiduals(finite_DLM_2$model)
+```
+```{r}
+shapiro.test(residuals(finite_DLM_2$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 35:***
+
+*
+The time series plot clearly shows a random trend.
+*
+The ACF plot has only one lag which is significant, indicating a slight presence of autocorrelation and seasonality in the residuals.
+*
+Since the p-value is less than 0.05, the Beusch-Godfrey test maintains serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_dlm_2 =vif(finite_DLM_2$model)
+vif_dlm_2
+```
+
+
+```{r}
+vif_dlm_2 >10
+```
+
+*
+According to the VIF values, the above model with q=5 does not have a multicollinearity problem. 
+
+### Fitting polynomial distributed lag models 
+
+```{r}
+for(i in 1:10){
+        for(j in 1:5){
+                model_222.1 <- polyDlm(x = as.vector(ffd_rainfall.ts),y = as.vector(ffd_FFD.ts), q = i, k = j, show.beta = FALSE)
+                cat("q:",i,"k:",j, "AIC:",AIC(model_222.1$model), "BIC:", BIC(model_222.1$model),"MASE =", MASE(model_222.1)$MASE, "\n")
+        }
+}
+```
+
+According to the output of polynomial distributed lag model, lag =5 and k=5 has the lowest MASE, AIC, and BIC values which are MASE = 0.5808908, AIC: 246.1244, BIC: 256.1891. As a result, we provide a lag duration of (q=5, k=5).
+
+*
+Fitting a polynomial DLM for**Rainfall** with respect to dependent variable **FFD**
+
+```{r}
+poly_DLM_2 <- polyDlm(x = as.vector(ffd_rainfall.ts), y = as.vector(ffd_FFD.ts), q = 5, k = 5)
+summary(poly_DLM_2)
+```
+
+
+The above model of the polynomial distributed lag model has q=5 and k=5, and all lag weights in a predictor series are not statistically significant at the 5% level. The adjusted R-squared of the above model is  0.0729, indicating that this only explains 7.29 percent of the variability in the model. The whole model has a p-value of 0.2931, which is greater than 0.05, which shows that it is not statistically significant.
+
+```{r}
+checkresiduals(poly_DLM_2$model)
+```
+
+```{r}
+shapiro.test(residuals(poly_DLM_2$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 36:***
+
+*
+The time series plot clearly shows a random trend.
+*
+The ACF plot has only one lag which is significant, indicating a slight presence of autocorrelation and seasonality in the residuals.
+*
+Since the p-value is less than 0.05, the Beusch-Godfrey test maintains serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_poly_2 =vif(poly_DLM_2$model)
+vif_poly_2
+```
+
+
+```{r}
+vif_poly_2 >10
+```
+
+*
+According to the VIF values, the above model with q=5 and k=5 is slightly affected by the multicollinearity.
+
+### Fitting Koyck model 
+
+*
+Fitting a Koyck model for**Rainfall** with respect to dependent variable **FFD**
+
+```{r}
+Koyck_model_2 = koyckDlm(x = as.vector(ffd_rainfall.ts) , y = as.vector(ffd_FFD.ts))
+summary(Koyck_model_2$model, diagnostics=TRUE)
+```
+
+*
+The above Koyck model states that there are no consequential terms at the 5% level of significance. The adjusted R-squared of the above model is  -0.3431, indicating that this only explains -34.31 percent of the variability in the model. The whole model has a p-value of 0.9254, which is greater than 0.05, which shows that it is not statistically significant.
+*
+We may conclude from the Wu-Hausman test (p-value greater than 0.05) that there is no significant correlation between the descriptive variable and the error term at the 5% level.
+
+```{r}
+checkresiduals(Koyck_model_2$model)
+```
+
+```{r}
+shapiro.test(residuals(Koyck_model_2$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 37:***
+
+*
+The time series plot clearly shows a random trend.
+*
+The ACF plot has only one lag which is significant, indicating a slight presence of autocorrelation and seasonality in the residuals.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_koyck_2=vif(Koyck_model_2$model)
+vif_koyck_2
+```
+
+```{r}
+vif_koyck_2>10
+```
+
+*
+According to the VIF values, the above model does not have a multicollinearity problem. 
+
+### Fitting autoregressive distributed lag models
+
+Autoregressive distributed lag models are the last model type derived from the time series regression technique. To describe the parameters of ARDL(p,q), we build a loop that fits autoregressive distributed lag models for a variety of lag lengths and AR process orders and calculates accuracy metrics such as AIC/BIC and MASE.
+
+```{r}
+for (i in 1:5){
+  for(j in 1:5){
+    model_33 = ardlDlm(x = as.vector(ffd_rainfall.ts), y = as.vector(ffd_FFD.ts), p = i , q = j)
+    cat("p =", i, "q =", j, "AIC =", AIC(model_33$model), "BIC =", BIC(model_33$model), "MASE =", MASE(model_33)$MASE, "\n")
+ }
+}
+```
+
+According to the output of autoregressive distributed lag model, the lowest MASE, AIC, and BIC values which are MASE = 0.5256786 , AIC: 248.4355, BIC: 263.5326 As a result, we provide a lag duration of (p=5,q=4).
+
+*
+Fitting a autoregressive distributed lag model for **Rainfall** with respect to dependent variable **FFD**.
+
+```{r}
+ardldlm_t2_54 = ardlDlm(x = as.vector(ffd_rainfall.ts), y = as.vector(ffd_FFD.ts),p = 5, q =4)
+summary(ardldlm_t2_54)
+```
+
+The above model of the autoregressive distributed lag model has p=5 and q=4, only X.5 attributes has consequential terms at the 5% level of significance. The adjusted R-squared of the above model is 0.05646, indicating that this only explains 5.646 percent of the variability in the model. The whole model has a p-value of 0.3911, which is greater than 0.05, which shows that it is not statistically significant.
+
+
+```{r}
+checkresiduals(ardldlm_t2_54$model)
+```
+
+```{r}
+shapiro.test(residuals(ardldlm_t2_54$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 38:***
+
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+Since the p-value is greater than 0.05, the Beusch-Godfrey test does not maintain serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+Now checking the multicollinearity issue
+
+
+```{r}
+vif_ardldlm_t2_54=vif(ardldlm_t2_54$model)
+vif_ardldlm_t2_54
+```
+
+
+```{r}
+vif_ardldlm_t2_54>10
+```
+
+
+According to the VIF values, the above model does not have multicollinearity problem.
+
+## Model Fitting - FFD vs Radiation
+
+### Fitting finite distributed lag models 
+
+To determine the model’s finite lag length, we build a loop that calculates accuracy metrics such as AIC/BIC and MASE for models with varying lag lengths and selects the model with the lowest values.
+
+```{r}
+
+for ( i in 1:5){
+  model1111.11 = dlm(x = as.vector(ffd_radiation.ts), y = as.vector(ffd_FFD.ts), q = i )
+  cat("q = ", i, "AIC = ", AIC(model1111.11$model), "BIC = ", BIC(model1111.11$model), "MASE =", MASE(model1111.11)$MASE, "\n")
+}
+
+```
+
+According to the output of finite distributed lag, lag 5 has the lowest MASE, AIC, and BIC values which are MASE = 0.5870893, AIC =  249.3748 BIC =  259.4396. As a result, we provide a lag duration of (q=5).
+
+*
+Fitting a finite DLM with a lag of 8 and doing the diagostic checking for **Radiation** with respect to dependent variable **FFD**
+
+```{r}
+finite_DLM_3 <- dlm(x = as.vector(ffd_radiation.ts), y = as.vector(ffd_FFD.ts), q = 5)
+summary(finite_DLM_3)
+```
+
+The above model of the finite distributed lag model has q=5, all lag weights in a predictor series are not statistically significant at the 5% level. The adjusted R-squared of the above model is -0.05056, indicating that this only explains -5.056 percent of the variability in the model. The whole model has a p-value of 0.5822, which is greater than 0.05, which shows that it is not statistically significant.
+
+
+```{r}
+checkresiduals(finite_DLM_3$model)
+```
+```{r}
+shapiro.test(residuals(finite_DLM_3$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 39:***
+
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is greater than 0.05, the Beusch-Godfrey test does not maintain serial correlation at a 5% level of significance.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_dlm_3 =vif(finite_DLM_3$model)
+vif_dlm_3
+```
+
+
+```{r}
+vif_dlm_3 >10
+```
+
+*
+According to the VIF values, the above model with q=5 does not have a multicollinearity problem. 
+
+### Fitting polynomial distributed lag models 
+
+```{r}
+for(i in 1:10){
+        for(j in 1:5){
+                model_2222.1 <- polyDlm(x = as.vector(ffd_radiation.ts),y = as.vector(ffd_FFD.ts), q = i, k = j, show.beta = FALSE)
+                cat("q:",i,"k:",j, "AIC:",AIC(model_2222.1$model), "BIC:", BIC(model_2222.1$model),"MASE =", MASE(model_2222.1)$MASE, "\n")
+        }
+}
+```
+
+According to the output of polynomial distributed lag model, lag =7 and k=5 has the lowest MASE, AIC, and BIC values which are MASE = 0.513034, AIC: 229.972, BIC: 239.3964. As a result, we provide a lag duration of (q=7, k=5).
+
+*
+Fitting a polynomial DLM for**Radiation** with respect to dependent variable **FFD**
+
+```{r}
+poly_DLM_3 <- polyDlm(x = as.vector(ffd_radiation.ts), y = as.vector(ffd_FFD.ts), q = 7, k = 5)
+summary(poly_DLM_3)
+```
+
+
+The above model of the polynomial distributed lag model has q=7 and k=5, and there are no consequential terms at the 5% level of significance. The adjusted R-squared of the above model is  0.00336, indicating that this only explains 0.336 percent of the variability in the model. The whole model has a p-value of 0.4494, which is greater than 0.05, which shows that it is not statistically significant.
+
+```{r}
+checkresiduals(poly_DLM_3$model)
+```
+
+```{r}
+shapiro.test(residuals(poly_DLM_3$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 40:***
+
+*
+The time series plot clearly shows a random trend.
+*
+The ACF plot has only one lag which is significant, indicating a slight presence of autocorrelation and seasonality in the residuals.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_poly_3 =vif(poly_DLM_3$model)
+vif_poly_3
+```
+
+
+```{r}
+vif_poly_3 >10
+```
+
+*
+According to the VIF values, the above model with q=7 and k=5 has a multicollinearity problem.
+
+### Fitting Koyck model 
+
+*
+Fitting a Koyck model for **Radiation** with respect to dependent variable **FFD**
+
+```{r}
+Koyck_model_3 = koyckDlm(x = as.vector(ffd_radiation.ts) , y = as.vector(ffd_FFD.ts))
+summary(Koyck_model_3$model, diagnostics=TRUE)
+```
+
+*
+The above Koyck model states that there are no consequential terms at the 5% level of significance. The adjusted R-squared of the above model is  -0.1539, indicating that this only explains -15.39 percent of the variability in the model. The whole model has a p-value of 0.8626, which is greater than 0.05, which shows that it is not statistically significant.
+*
+We may conclude from the Wu-Hausman test (p-value greater than 0.05) that there is no significant correlation between the descriptive variable and the error term at the 5% level.
+
+```{r}
+checkresiduals(Koyck_model_3$model)
+```
+
+```{r}
+shapiro.test(residuals(Koyck_model_3$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 41:***
+
+*
+The time series plot clearly shows a random trend.
+*
+The ACF plot has only one lag which is significant, indicating a presence of autocorrelation and seasonality in the residuals.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_koyck_3=vif(Koyck_model_3$model)
+vif_koyck_3
+```
+
+```{r}
+vif_koyck_3>10
+```
+
+*
+According to the VIF values, the above model does not have a multicollinearity problem. 
+
+### Fitting autoregressive distributed lag models
+
+Autoregressive distributed lag models are the last model type derived from the time series regression technique. To describe the parameters of ARDL(p,q), we build a loop that fits autoregressive distributed lag models for a variety of lag lengths and AR process orders and calculates accuracy metrics such as AIC/BIC and MASE.
+
+```{r}
+for (i in 1:5){
+  for(j in 1:5){
+    model_333 = ardlDlm(x = as.vector(ffd_radiation.ts), y = as.vector(ffd_FFD.ts), p = i , q = j)
+    cat("p =", i, "q =", j, "AIC =", AIC(model_333$model), "BIC =", BIC(model_33$model), "MASE =", MASE(model_333)$MASE, "\n")
+ }
+}
+```
+
+According to the output of autoregressive distributed lag model, the lowest MASE, AIC, and BIC values which are MASE = 0.5278081 , AIC: 257.5483, BIC: 266.3868 As a result, we provide a lag duration of (p=5,q=4).
+
+*
+Fitting a autoregressive distributed lag model for **Radiation** with respect to dependent variable **FFD**.
+
+```{r}
+ardldlm_t2_54_radiation = ardlDlm(x = as.vector(ffd_radiation.ts), y = as.vector(ffd_FFD.ts),p = 5, q =4)
+summary(ardldlm_t2_54_radiation)
+```
+
+The above model of the autoregressive distributed lag model has p=5 and q=4, all the attributes has no consequential terms at the 5% level of significance. The adjusted R-squared of the above model is -0.2498, indicating that this only explains -24.98 percent of the variability in the model. The whole model has a p-value of 0.8644, which is greater than 0.05, which shows that it is not statistically significant.
+
+
+```{r}
+checkresiduals(ardldlm_t2_54_radiation$model)
+```
+
+```{r}
+shapiro.test(residuals(ardldlm_t2_54_radiation$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 42:***
+
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+Since the p-value is less than 0.05, the Beusch-Godfrey test maintains serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+Now checking the multicollinearity issue
+
+
+```{r}
+vif_ardldlm_t2_54_radiation=vif(ardldlm_t2_54_radiation$model)
+vif_ardldlm_t2_54_radiation
+```
+
+
+```{r}
+vif_ardldlm_t2_54_radiation>10
+```
+
+
+According to the VIF values, the above model does not have the multicollinearity problem.
+
+## Model Fitting - FFD vs Humidity
+
+### Fitting finite distributed lag models 
+
+To determine the model’s finite lag length, we build a loop that calculates accuracy metrics such as AIC/BIC and MASE for models with varying lag lengths and selects the model with the lowest values.
+
+```{r}
+
+for ( i in 1:5){
+  model111.111 = dlm(x = as.vector(ffd_humidity.ts), y = as.vector(ffd_FFD.ts), q = i )
+  cat("q = ", i, "AIC = ", AIC(model111.111$model), "BIC = ", BIC(model111.111$model), "MASE =", MASE(model111.111)$MASE, "\n")
+}
+
+```
+
+According to the output of finite distributed lag, lag 3 has the lowest MASE, AIC, and BIC values which are MASE = 0.6124744, AIC =  260.6544 BIC =  268.6476. As a result, we provide a lag duration of (q=3).
+
+
+*
+Fitting a finite DLM with a lag of 6 and doing the diagostic checking for **Humidity** with respect to dependent variable **FFD**
+
+```{r}
+finite_DLM_4 <- dlm(x = as.vector(ffd_humidity.ts), y = as.vector(ffd_FFD.ts), q = 3)
+summary(finite_DLM_4)
+```
+
+The above model of the finite distributed lag model has q=3, Almost all lag weights in a predictor series are not statistically significant at the 5% level. The adjusted R-squared of the above model is 0.09449, indicating that this only explains 9.449 percent of the variability in the model. The whole model has a p-value of 0.1834, which is greater than 0.05, which shows that it is not statistically significant.
+
+```{r}
+checkresiduals(finite_DLM_4$model)
+```
+```{r}
+shapiro.test(residuals(finite_DLM_4$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 43:***
+
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+Since the p-value is greater than 0.05, the Beusch-Godfrey test does not maintain serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_dlm_4 =vif(finite_DLM_4$model)
+vif_dlm_4
+```
+
+
+```{r}
+vif_dlm_4 >10
+```
+
+*
+According to the VIF values, the above model with q=3 does not have a multicollinearity problem. 
+
+### Fitting polynomial distributed lag models 
+
+```{r}
+for(i in 1:5){
+        for(j in 1:5){
+                model_222.111 <- polyDlm(x = as.vector(ffd_humidity.ts),y = as.vector(ffd_FFD.ts), q = i, k = j, show.beta = FALSE)
+                cat("q:",i,"k:",j, "AIC:",AIC(model_222.111$model), "BIC:", BIC(model_222.111$model),"MASE =", MASE(model_222.111)$MASE, "\n")
+        }
+}
+```
+
+According to the output of polynomial distributed lag model, lag =4 and k=3 has the lowest MASE, AIC, and BIC values which are MASE = 0.605609, AIC: 253.2751, BIC: 261.0501. As a result, we provide a lag duration of (q=4, k=3).
+
+*
+Fitting a polynomial DLM for**Humidity** with respect to dependent variable **FFD**
+
+```{r}
+poly_DLM_4 <- polyDlm(x = as.vector(ffd_humidity.ts), y = as.vector(ffd_FFD.ts), q = 4, k = 3)
+summary(poly_DLM_4)
+```
+
+
+The above model of the polynomial distributed lag model has q=4 and k=3, and there are no consequential terms at the 5% level of significance. The adjusted R-squared of the above model is  0.0602, indicating that this only explains 6.02 percent of the variability in the model. The whole model has a p-value of 0.26156, which is greater than 0.05, which shows that it is not statistically significant.
+
+```{r}
+checkresiduals(poly_DLM_4$model)
+```
+
+```{r}
+shapiro.test(residuals(poly_DLM_4$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 44:***
+
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is greater than 0.05, the Beusch-Godfrey test does not maintain serial correlation at a 5% level of significance.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_poly_4 =vif(poly_DLM_4$model)
+vif_poly_4
+```
+
+
+```{r}
+vif_poly_4 >10
+```
+
+*
+According to the VIF values, the above model with q=4 and k=3 is slightly affectd by multicollinearity.
+
+### Fitting Koyck model 
+
+*
+Fitting a Koyck model for**Humidity** with respect to dependent variable **FFD**
+
+```{r}
+Koyck_model_4 = koyckDlm(x = as.vector(ffd_humidity.ts) , y = as.vector(ffd_FFD.ts))
+summary(Koyck_model_4$model, diagnostics=TRUE)
+```
+
+*
+The above Koyck model states that there are no consequential terms at the 5% level of significance. The adjusted R-squared of the above model is  -0.2906, indicating that this only explains -29.06 percent of the variability in the model. The whole model has a p-value of 0.9226, which is greater than 0.05, which shows that it is not statistically significant.
+*
+We may conclude from the Wu-Hausman test (p-value greater than 0.05) that there is no significant correlation between the descriptive variable and the error term at the 5% level.
+
+```{r}
+checkresiduals(Koyck_model_4$model)
+```
+
+```{r}
+shapiro.test(residuals(Koyck_model_4$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 45:***
+
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_koyck_4=vif(Koyck_model_4$model)
+vif_koyck_4
+```
+
+```{r}
+vif_koyck_4>10
+```
+
+*
+According to the VIF values, the above model does not have a multicollinearity problem. 
+
+### Fitting autoregressive distributed lag models
+
+Autoregressive distributed lag models are the last model type derived from the time series regression technique. To describe the parameters of ARDL(p,q), we build a loop that fits autoregressive distributed lag models for a variety of lag lengths and AR process orders and calculates accuracy metrics such as AIC/BIC and MASE.
+
+```{r}
+for (i in 1:5){
+  for(j in 1:5){
+    model_3333 = ardlDlm(x = as.vector(ffd_humidity.ts), y = as.vector(ffd_FFD.ts), p = i , q = j)
+    cat("p =", i, "q =", j, "AIC =", AIC(model_3333$model), "BIC =", BIC(model_3333$model), "MASE =", MASE(model_3333)$MASE, "\n")
+ }
+}
+```
+
+According to the output of autoregressive distributed lag model, the lowest MASE, AIC, and BIC values which are MASE = 0.5164104 , AIC: 254.7429, BIC: 271.0982. As a result, we provide a lag duration of (p=5,q=5).
+
+*
+Fitting a autoregressive distributed lag model for **Humidity** with respect to dependent variable **FFD**.
+
+```{r}
+ardldlm_t2_55_humidity = ardlDlm(x = as.vector(ffd_humidity.ts), y = as.vector(ffd_FFD.ts),p = 5, q =5)
+summary(ardldlm_t2_55_humidity)
+```
+
+The above model of the autoregressive distributed lag model has p=5 and q=5, all the attributes has no consequential terms at the 5% level of significance. The adjusted R-squared of the above model is -0.1931, indicating that this only explains -19.31 percent of the variability in the model. The whole model has a p-value of 0.775, which is greater than 0.05, which shows that it is not statistically significant.
+
+
+```{r}
+checkresiduals(ardldlm_t2_55_humidity)
+```
+
+```{r}
+shapiro.test(residuals(ardldlm_t2_55_humidity$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 46:***
+
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+Now checking the multicollinearity issue
+
+
+```{r}
+vif_ardldlm_t2_55_humidity=vif(ardldlm_t2_55_humidity$model)
+vif_ardldlm_t2_55_humidity
+```
+
+
+```{r}
+vif_ardldlm_t2_55_humidity>10
+```
+
+
+According to the VIF values, the above model does not have multicollinearity problem.
+
+*
+The data frame has been constructed to contain the model accuracy values, such as AIC/BIC and MASE, from the models that have been fitted so far.
+
+```{r}
+model_dlm_t2 <- data.frame(Model=character(),MASE=numeric(),
+                           BIC= numeric(),AICC=numeric(),AIC=numeric())
+model_dlm_t2 = rbind(model_dlm_t2,cbind(Model="Finite DLM_temperature",
+                                               AIC = AIC(finite_DLM_1),
+                                              BIC = BIC(finite_DLM_1),
+                                              MASE= MASE(finite_DLM_1)
+))
+model_dlm_t2 = rbind(model_dlm_t2,cbind(Model="Polynomial DLM_temperature",
+                                               BIC = BIC(poly_DLM_1),
+                                               AIC = AIC(poly_DLM_1),
+                                              MASE= MASE(poly_DLM_1)
+                                              ))
+model_dlm_t2 = rbind(model_dlm_t2,cbind(Model="Koyck Model temperature",
+                                               AIC = AIC(Koyck_model_1),
+                                      BIC = BIC(Koyck_model_1),
+                                              MASE= MASE(Koyck_model_1)
+                                              ))
+model_dlm_t2 = rbind(model_dlm_t2,cbind(Model="autoregressive_dlm_t2_55_temperature",
+                                               AIC = AIC(ardldlm_t2_55),
+                                      BIC = BIC(ardldlm_t2_55),
+                                              MASE= MASE(ardldlm_t2_55)
+                                              ))
+
+
+
+model_dlm_t2 = rbind(model_dlm_t2,cbind(Model="Finite DLM_rainfall",
+                                               AIC = AIC(finite_DLM_2),
+                                              BIC = BIC(finite_DLM_2),
+                                              MASE= MASE(finite_DLM_2)
+))
+model_dlm_t2 = rbind(model_dlm_t2,cbind(Model="Polynomial DLM_rainfall",
+                                               BIC = BIC(poly_DLM_2),
+                                               AIC = AIC(poly_DLM_2),
+                                              MASE= MASE(poly_DLM_2)
+                                              ))
+model_dlm_t2 = rbind(model_dlm_t2,cbind(Model="Koyck Model rainfall",
+                                               AIC = AIC(Koyck_model_2),
+                                      BIC = BIC(Koyck_model_2),
+                                              MASE= MASE(Koyck_model_2)
+                                              ))
+model_dlm_t2 = rbind(model_dlm_t2,cbind(Model="autoregressive_dlm_t2_54_rainfall",
+                                               AIC = AIC(ardldlm_t2_54),
+                                      BIC = BIC(ardldlm_t2_54),
+                                              MASE= MASE(ardldlm_t2_54)
+                                              ))
+
+
+model_dlm_t2 = rbind(model_dlm_t2,cbind(Model="Finite DLM_radiation",
+                                               AIC = AIC(finite_DLM_3),
+                                              BIC = BIC(finite_DLM_3),
+                                              MASE= MASE(finite_DLM_3)
+))
+model_dlm_t2 = rbind(model_dlm_t2,cbind(Model="Polynomial DLM_radiation",
+                                               BIC = BIC(poly_DLM_3),
+                                               AIC = AIC(poly_DLM_3),
+                                              MASE= MASE(poly_DLM_3)
+                                              ))
+model_dlm_t2 = rbind(model_dlm_t2,cbind(Model="Koyck Model radiation",
+                                               AIC = AIC(Koyck_model_3),
+                                      BIC = BIC(Koyck_model_3),
+                                              MASE= MASE(Koyck_model_3)
+                                              ))
+model_dlm_t2 = rbind(model_dlm_t2,cbind(Model="autoregressive_dlm_t2_54_radiation",
+                                               AIC = AIC(ardldlm_t2_54_radiation),
+                                      BIC = BIC(ardldlm_t2_54_radiation),
+                                              MASE= MASE(ardldlm_t2_54_radiation)
+                                              ))
+
+
+
+model_dlm_t2 = rbind(model_dlm_t2,cbind(Model="Finite DLM_humidity",
+                                               AIC = AIC(finite_DLM_4),
+                                              BIC = BIC(finite_DLM_4),
+                                              MASE= MASE(finite_DLM_4)
+))
+model_dlm_t2 = rbind(model_dlm_t2,cbind(Model="Polynomial DLM_humidity",
+                                               BIC = BIC(poly_DLM_4),
+                                               AIC = AIC(poly_DLM_4),
+                                              MASE= MASE(poly_DLM_4)
+                                              ))
+model_dlm_t2 = rbind(model_dlm_t2,cbind(Model="Koyck Model humidity",
+                                               AIC = AIC(Koyck_model_4),
+                                      BIC = BIC(Koyck_model_4),
+                                              MASE= MASE(Koyck_model_4)
+                                              ))
+model_dlm_t2 = rbind(model_dlm_t2,cbind(Model="autoregressive_dlm_t2_55_humidity",
+                                               AIC = AIC(ardldlm_t2_55_humidity),
+                                      BIC = BIC(ardldlm_t2_55_humidity),
+                                              MASE= MASE(ardldlm_t2_55_humidity)
+                                              ))
+
+
+sortScore(model_dlm_t2,score = "mase")
+```
+
+## Exponential Smoothing 
+
+Exponential smoothing will be another forecasting approach we will explore. We will only evaluate some of the meaningful models.
+
+### FFD vs Temperature
+
+
+Holt's linear trend
+
+```{r}
+ffd_temp_holt = holt(x=ffd_temp.ts,y= ffd_FFD.ts, initial = "simple", h=4)
+summary(ffd_temp_holt)
+```
+
+```{r}
+ checkresiduals(ffd_temp_holt)
+```
+```{r}
+ shapiro.test(residuals(ffd_temp_holt$model))
+```
+
+
+The residual graphs for the above model are shown in ***Figure 47:***
+
+*
+MASE of this model is 0.9872715.
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+Since the p-value is greater than 0.05, the Ljung-Box test does not maintain serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+Damped Holt's Method
+
+```{r}
+ffd_temp_holt_1 = holt(x=ffd_temp.ts,y= ffd_FFD.ts, damped = TRUE, initial = "simple", h=4)
+summary(ffd_temp_holt_1)
+```
+
+```{r}
+ checkresiduals(ffd_temp_holt_1)
+```
+```{r}
+ shapiro.test(residuals(ffd_temp_holt_1$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 48:***
+
+*
+MASE of this model is 0.9164294.
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+Since the p-value is greater than 0.05, the Ljung-Box test does not maintain serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+*
+Holt's method with Exponential Trend
+
+```{r}
+ffd_temp_holt_2 = holt(x=ffd_temp.ts,y= ffd_FFD.ts, exponential =TRUE, initial = "simple", h=4)
+summary(ffd_temp_holt_2)
+```
+
+```{r}
+ checkresiduals(ffd_temp_holt_2)
+```
+```{r}
+ shapiro.test(residuals(ffd_temp_holt_2$model))
+```
+
+
+The residual graphs for the above model are shown in ***Figure 49:***
+
+*
+MASE of this model is 0.9879629
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+Since the p-value is greater than 0.05, the Ljung-Box test does not maintain serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+### FFD vs Rainfall
+
+*
+Holt's linear trend
+
+```{r}
+ffd_rainfall_holt = holt(x=ffd_rainfall.ts,y= ffd_FFD.ts, initial = "simple", h=4)
+summary(ffd_rainfall_holt)
+```
+
+```{r}
+ checkresiduals(ffd_rainfall_holt)
+```
+```{r}
+ shapiro.test(residuals(ffd_rainfall_holt$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 50:***
+
+*
+MASE of this model is 0.7630564
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+Since the p-value is greater than 0.05, the Ljung-Box test does not maintain serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+*
+Damped Holt's Method
+
+```{r}
+ffd_rainfall_holt_1 = holt(x=ffd_rainfall.ts,y= ffd_FFD.ts, damped = TRUE, initial = "simple", h=4)
+summary(ffd_rainfall_holt_1)
+```
+
+```{r}
+ checkresiduals(ffd_temp_holt_1)
+```
+```{r}
+ shapiro.test(residuals(ffd_temp_holt_1$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 51:***
+
+*
+MASE of this model is 0.7808209
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+Since the p-value is greater than 0.05, the Ljung-Box test does not maintain serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+*
+Holt's method with Exponential Trend
+
+```{r}
+ffd_rainfall_holt_2 = holt(x=ffd_rainfall.ts,y= ffd_FFD.ts, exponential =TRUE, initial = "simple", h=4)
+summary(ffd_rainfall_holt_2)
+```
+
+```{r}
+ checkresiduals(ffd_rainfall_holt_2)
+```
+```{r}
+ shapiro.test(residuals(ffd_rainfall_holt_2$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 52:***
+
+*
+MASE of this model is 0.759662
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+Since the p-value is greater than 0.05, the Ljung-Box test does not maintain serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+### FFD vs Radiation
+
+*
+Holt's linear trend
+
+```{r}
+ffd_radiation_holt = holt(x=ffd_radiation.ts ,y= ffd_FFD.ts, initial = "simple", h=4)
+summary(ffd_radiation_holt)
+```
+
+```{r}
+ checkresiduals(ffd_radiation_holt)
+```
+```{r}
+ shapiro.test(residuals(ffd_radiation_holt$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 53:***
+
+*
+MASE of this model is 1.010459
+*
+The time series plot clearly shows a random trend.
+*
+Following the ACF plot, we may infer that the residuals might have significant serial correlations.
+*
+Since the p-value is less than 0.05, the Ljung-Box test partially maintains serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+*
+Damped Holt's Method
+
+```{r}
+ffd_radiation_holt_1 = holt(x=ffd_radiation.ts,y= ffd_FFD.ts, damped = TRUE, initial = "simple", h=4)
+summary(ffd_radiation_holt_1)
+```
+
+```{r}
+ checkresiduals(ffd_radiation_holt_1)
+```
+```{r}
+ shapiro.test(residuals(ffd_radiation_holt_1$model))
+```
+
+
+The residual graphs for the above model are shown in ***Figure 54:***
+
+*
+MASE of this model is 0.8715649
+*
+The time series plot clearly shows a random trend.
+*
+Following the ACF plot, we may infer that the residuals might have significant serial correlations.
+*
+Since the p-value is less than 0.05, the Ljung-Box test partially maintains serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+*
+Holt's method with Exponential Trend
+
+```{r}
+ffd_radiation_holt_2 = holt(x=ffd_radiation.ts,y= ffd_FFD.ts, exponential =TRUE, initial = "simple", h=4)
+summary(ffd_radiation_holt_2)
+```
+
+```{r}
+ checkresiduals(ffd_radiation_holt_2)
+```
+```{r}
+ shapiro.test(residuals(ffd_radiation_holt_2$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 55:***
+
+*
+MASE of this model is 1.005775
+*
+The time series plot clearly shows a random trend.
+*
+Following the ACF plot, we may infer that the residuals might have significant serial correlations.
+*
+Since the p-value is less than 0.05, the Ljung-Box test partially maintains serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+### FFD vs Humidity
+
+*
+Holt's linear trend
+
+```{r}
+ffd_humidity_holt = holt(x=ffd_humidity.ts ,y= ffd_FFD.ts, initial = "simple", h=4)
+summary(ffd_humidity_holt)
+```
+
+```{r}
+ checkresiduals(ffd_humidity_holt)
+```
+```{r}
+ shapiro.test(residuals(ffd_humidity_holt$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 56:***
+
+*
+MASE of this model is 1.029767
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+Since the p-value is greater than 0.05, the Ljung-Box test does not maintain serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+*
+Damped Holt's Method
+
+```{r}
+ffd_humidity_holt_1 = holt(x=ffd_humidity.ts,y= ffd_FFD.ts, damped = TRUE, initial = "simple", h=4)
+summary(ffd_humidity_holt_1)
+```
+
+```{r}
+ checkresiduals(ffd_humidity_holt_1)
+```
+```{r}
+ shapiro.test(residuals(ffd_humidity_holt_1$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 57:***
+
+*
+MASE of this model is 0.662187
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+Since the p-value is less than 0.05, the Ljung-Box test partially maintains serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+*
+Holt's method with Exponential Trend
+
+```{r}
+ffd_humidity_holt_2 = holt(x=ffd_humidity.ts,y= ffd_FFD.ts, exponential =TRUE, initial = "simple", h=4)
+summary(ffd_humidity_holt_2)
+```
+
+```{r}
+ checkresiduals(ffd_humidity_holt_2)
+```
+```{r}
+ shapiro.test(residuals(ffd_humidity_holt_2$model))
+```
+
+
+The residual graphs for the above model are shown in ***Figure 58:***
+
+*
+MASE of this model is 1.032338
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+Since the p-value is greater than 0.05, the Ljung-Box test does not maintain serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+The data frame has been constructed to contain the exponential smoothing models values, such as AIC/BIC and MASE, from the models that have been fitted for the same.
+
+```{r}
+model_expo_t2 <- data.frame(Model=character() , MASE=numeric() ,
+                           BIC= numeric() , AICC=numeric() , AIC=numeric())
+
+model_expo_t2 = rbind(model_expo_t2,cbind(Model="Temperature_Holt's linear trend",MASE= accuracy(ffd_temp_holt)[6],
+                                              AIC = ffd_temp_holt$model$aic,
+                                              BIC = ffd_temp_holt$model$bic
+                                      ))
+#model_expo_t2 = rbind(model_expo_t2,cbind(Model="Temperature_Damped Holt's trend",MASE= accuracy(ffd_temp_holt_2)[7],
+                                            #  AIC = ffd_temp_holt_2$model$aic,
+                                             # BIC = ffd_temp_holt_2$model$bic
+                                    #  ))
+
+
+model_expo_t2 = rbind(model_expo_t2,cbind(Model="Temperature_Holt's Exponential Trend",MASE= accuracy(ffd_temp_holt_2)[6],
+                                              AIC = ffd_temp_holt_2$model$aic,
+                                              BIC = ffd_temp_holt_2$model$bic
+                                      ))
+
+
+model_expo_t2 = rbind(model_expo_t2,cbind(Model="Rainfall_Holt's linear trend",MASE= accuracy(ffd_rainfall_holt)[6],
+                                               AIC = ffd_rainfall_holt$model$aic,
+                                              BIC = ffd_rainfall_holt$model$bic
+                                      ))
+#model_expo_t2 = rbind(model_expo_t2,cbind(Model="Rainfall_Damped Holt's trend",MASE= accuracy(ffd_rainfall_holt_1)[7],
+                                             # AIC = ffd_rainfall_holt_1$model$aic,
+                                              #BIC = ffd_rainfall_holt_1$model$bic
+                                     # ))
+
+
+model_expo_t2 = rbind(model_expo_t2,cbind(Model="Rainfall_Holt's Exponential Trend",MASE= accuracy(ffd_rainfall_holt_2)[6],
+                                              AIC = ffd_rainfall_holt_2$model$aic,
+                                              BIC = ffd_rainfall_holt_2$model$bic
+                                      ))
+
+model_expo_t2 = rbind(model_expo_t2,cbind(Model="Radiation_Holt's linear trend",MASE= accuracy(ffd_radiation_holt)[6],
+                                               AIC = ffd_radiation_holt$model$aic,
+                                              BIC = ffd_radiation_holt$model$bic
+                                      ))
+#model_expo_t2 = rbind(model_expo_t2,cbind(Model="Radiation_Damped Holt's trend",MASE= accuracy(ffd_radiation_holt_1)[7],
+                                             # AIC = ffd_radiation_holt_1$model$aic,
+                                              #BIC = ffd_radiation_holt_1$model$bic
+                                     # ))
+
+
+model_expo_t2 = rbind(model_expo_t2,cbind(Model="Radiation_Holt's Exponential Trend",MASE= accuracy(ffd_radiation_holt_2)[6],
+                                              AIC = ffd_radiation_holt_2$model$aic,
+                                              BIC = ffd_radiation_holt_2$model$bic
+                                      ))
+
+model_expo_t2 = rbind(model_expo_t2,cbind(Model="Humidity_Holt's linear trend",MASE= accuracy(ffd_humidity_holt)[6],
+                                               AIC = ffd_humidity_holt$model$aic,
+                                              BIC = ffd_humidity_holt$model$bic
+                                      ))
+#model_expo_t2 = rbind(model_expo_t2,cbind(Model="Humidity_Damped Holt's trend",MASE= accuracy(ffd_humidity_holt_1)[7],
+                                             # AIC = ffd_humidity_holt_1$model$aic,
+                                              #BIC = ffd_humidity_holt_1$model$bic
+                                     # ))
+
+
+model_expo_t2 = rbind(model_expo_t2,cbind(Model="Humidity_Holt's Exponential Trend",MASE= accuracy(ffd_humidity_holt_2)[6],
+                                              AIC = ffd_humidity_holt_2$model$aic,
+                                              BIC = ffd_humidity_holt_2$model$bic
+                                      ))
+
+
+model_expo_t2
+sortScore(model_expo_t2,score = "mase")
+
+```
+
+All of the observations have very high MASE values, which does not meet our end target because we consider the least mase values when forecasting.
+
+## State-space models 
+
+There are two state-space models for each exponential smoothing approach (with additive or multiplicative errors). (NOTE: some combinations are excluded due to their resistance problems).In this section, the auto ETS model is applied to check what the software’s automatically recommended model is.
+
+### FFD vs Temperature
+
+The auto ETS model is applied on ***FFD vs Temperature** to check what the software's automatically recommended model is.
+
+```{r}
+auto_fit_temp <- ets(ffd_temp.ts)
+summary(auto_fit_temp)
+
+```
+
+ETS(A,N,N) is the model that is automatically proposed. It is a model with additive errors, No trend, and No seasonality.
+
+```{r}
+checkresiduals(auto_fit_temp)
+```
+
+The residual graphs for the above model are shown in ***Figure 59:***
+
+*
+MASE of this model is 0.9084618
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+Since the p-value is greater than 0.05, the Ljung-Box test does not maintain serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+
+
+### FFD vs Rainfall
+
+The auto ETS model is applied on ***FFD vs Rainfall** to check what the software's automatically recommended model is.
+
+```{r}
+auto_fit_rainfall <- ets(ffd_rainfall.ts)
+summary(auto_fit_rainfall)
+
+```
+
+ETS(M,N,N) is the model that is automatically proposed. It is a model with multiplicative error, No trend, and No seasonality.
+
+```{r}
+checkresiduals(auto_fit_rainfall)
+```
+
+The residual graphs for the above model are shown in ***Figure 60:***
+
+*
+MASE of this model is 0.7936439
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+Since the p-value is greater than 0.05, the Ljung-Box test does not maintain serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+
+
+
+### FFD vs Radiation
+
+The auto ETS model is applied on ***FFD vs Radiation** to check what the software's automatically recommended model is.
+
+```{r}
+auto_fit_radiation <- ets(ffd_radiation.ts)
+summary(auto_fit_radiation)
+
+```
+
+ETS(M,N,N) is the model that is automatically proposed. It is a model with multiplicative error, No trend, and No seasonality.
+
+```{r}
+checkresiduals(auto_fit_radiation)
+```
+
+The residual graphs for the above model are shown in ***Figure 61:***
+
+*
+MASE of this model is 0.8479715
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals partially have any significant serial correlations.
+*
+Since the p-value is greater than 0.05, the Ljung-Box test does not maintain serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is violation in normality assumptions.
+
+
+### FFD vs Humidity
+
+
+The auto ETS model is applied on ***FFD vs Humidity** to check what the software's automatically recommended model is.
+
+```{r}
+auto_fit_humidity <- ets(ffd_humidity.ts)
+summary(auto_fit_humidity)
+
+```
+
+ETS(A,N,N) is the model that is automatically proposed. It is a model with additive errors, No trend, and No seasonality.
+
+```{r}
+checkresiduals(auto_fit_humidity)
+```
+
+
+The residual graphs for the above model are shown in ***Figure 62:***
+
+*
+MASE of this model is 0.6808573
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+Since the p-value is greater than 0.05, the Ljung-Box test does not maintain serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+
+
+The data frame has been constructed to contain the state space models values, such as AIC/BIC and MASE, from the models that have been fitted for the same.
+
+```{r}
+model_SSM_t2 <- data.frame(Model=character() , MASE=numeric() ,
+                           BIC= numeric() , AICC=numeric() , AIC=numeric())
+
+model_SSM_t2 = rbind(model_SSM_t2,cbind(Model="temperature_ANN", MASE= accuracy(auto_fit_temp)[6],
+                                               AIC = auto_fit_temp$aic,
+                                               BIC = auto_fit_temp$bic))
+
+model_SSM_t2 = rbind(model_SSM_t2,cbind(Model="rainfall_MNN", MASE= accuracy(auto_fit_rainfall)[6],
+                                               AIC = auto_fit_rainfall$aic,
+                                               BIC = auto_fit_rainfall$bic))
+
+model_SSM_t2 = rbind(model_SSM_t2,cbind(Model="radiation_MNN", MASE= accuracy(auto_fit_radiation)[6],
+                                               AIC = auto_fit_radiation$aic,
+                                               BIC = auto_fit_radiation$bic))
+
+model_SSM_t2 = rbind(model_SSM_t2,cbind(Model="humidity_ANN", MASE= accuracy(auto_fit_humidity)[6],
+                                               AIC = auto_fit_humidity$aic,
+                                               BIC = auto_fit_humidity$bic))
+
+
+model_SSM_t2
+
+```
+
+The data frame has been constructed to contain the Overall model values, such as AIC/BIC and MASE, from the models that have been fitted so far, it is sorted by ascending MASE value. As a result of this table, it will be obvious which models have the lowest MASE.
+
+```{r}
+
+best_overall_model_1 <- rbind(model_dlm_t2, model_SSM_t2)
+
+sortScore(best_overall_model_1,score = "mase")
+
+```
+
+In terms of MASE, the best overall model table will be taken into consideration to analyze all approaches we endeavored throughout the modeling step. The model that has the lowest MASE value is a polynomial distributed lag model method. Model:poly_DLM_3 is the best-distributed lag model in terms of the lowest MASE.
+
+Forecasting
+
+The model with the lowest MASE value from the above model fitting is poly_DLM_3, which adopts the polynomial distributed lag model technique. Forecast for the next four years will be predicted with the help of model poly_DLM_3.
+
+
+
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+# Task 3 Part (a) - The task is to conduct analysis using univariate climate regressors, using the best models available within the methodologies used, and providing the best RBO 3-year forecasts for the RBO series.
+
+The objective of this task is to predict the best RBO 3-year forecasts for the RBO series. From 1983 to 2014, this data examines the impact of long-term climatic changes in Victoria on the relative blooming order similarity of 81 plant species. The species were ranked yearly based on the time it took to blossom (FFD), and changes in flowering order were determined by computing the similarity between the annual flowering order and the flowering order from 1983 using the Rank-based Order similarity metric (RBO).
+
+*
+Reading the dataset.
+
+```{r}
+RBO_1 <- read.csv("/Users/zuaibshaikh/Desktop/SEM 4/Forecasting/Final Project/RBO  .csv")
+RBO = RBO_1[,2:6]
+head(RBO)
+```
+
+*
+Checking the class of the attributes
+
+```{r}
+class(RBO$RBO)
+class(RBO$Temperature)
+class(RBO$Rainfall)
+class(RBO$Radiation)
+class(RBO$RelHumidity)
+```
+
+*
+converting dataset to ts object
+
+```{r}
+rbo_RBO.ts = ts(RBO$RBO, start = 1984,frequency = 1)
+head(rbo_RBO.ts)
+
+rbo_temp.ts=ts(RBO$Temperature,start = 1984, frequency = 1)
+head(rbo_temp.ts)
+
+rbo_rainfall.ts <- ts(RBO$Rainfall,start = 1984,frequency = 1)
+head(rbo_rainfall.ts)
+
+rbo_radiation.ts= ts(RBO$Radiation, start = 1984,frequency = 1)
+head(rbo_radiation.ts)
+
+rbo_humidity.ts = ts(RBO$RelHumidity, start = 1984,frequency = 1)
+head(rbo_humidity.ts)
+
+rbo.ts= ts(RBO,start = 1984,frequency = 1)
+head(rbo.ts)
+```
+
+## The existence of non-stationarity in dataset.
+
+The aim here is to check whether the time series is stationary or non-stationary. The approach to monitoring this is with an ACF and PACF performance. The uniqueness of this is achieved by running a unit root test. The two tests are the enlarged Dickey-Fuller (ADF) and Phillips-Perron (PP).
+
+***The Descriptive Analysis***
+
+Five major patterns from a time series plot could be obtained from:
+
+*
+Trend.
+*
+Seasonality.
+*
+Changing Variation.
+*
+Behaviour. 
+*
+Change Point.
+
+Plotting graphs for the converted time series characteristics. Further, we will take a look at how each dataset feature performs the specific patterns mentioned above.
+
+```{r}
+plot(rbo_temp.ts, xlab='Year', main = " Figure 1. Time series plot of annual RBO temperature series")
+
+```
+
+From ***Figure 1*** of time series plot for annual RBO temperature series, we can interpret as follows:
+
+1. **Trend -** The plot is showing there is no trend.
+2. **Seasonality -** No seasonality is noticeable.
+3. **Changing Variation -** Unable to see any fluctuations that are greater or lesser or both consecutively,
+hence change in variance is not found.
+4. **Behaviour –** The series shows a moving average (up and down) behaviour.
+5. **Change Point -** Two interventions appear to occur in 1988 and 2006.
+
+
+```{r}
+plot(rbo_rainfall.ts, xlab='Year', main = " Figure 2. Time series plot of annual RBO rainfall series")
+
+```
+
+From ***Figure 2*** of time series plot for annual RBO rainfall series, we can interpret as follows:
+
+1. **Trend -** The plot is showing there is no trend.
+2. **Seasonality -** No seasonality is noticeable.
+3. **Changing Variation -** Unable to see any fluctuations that are greater or lesser or both consecutively,
+hence change in variance is not found.
+4. **Behaviour –** The series shows a moving average (up and down) behaviour.
+5. **Change Point -** An intervention appears to take place in the year 1997.
+
+```{r}
+plot(rbo_radiation.ts, xlab='Year', main = " Figure 3. Time series plot of annual RBO radiation series ")
+
+```
+
+From ***Figure 3*** of time series plot for annual RBO radiation series, we can interpret as follows:
+
+1. **Trend -** The plot is showing kind of upward trend.
+2. **Seasonality -** No seasonality is noticeable.
+3. **Changing Variation -** Unable to see any fluctuations that are greater or lesser or both consecutively,
+hence change in variance is not found.
+4. **Behaviour –** The series shows a moving average (up and down) behaviour.
+5. **Change Point -** An intervention appears to take place in the year 1992.
+
+```{r}
+plot(rbo_humidity.ts, xlab='Year', main = " Figure 4. Time series plot of annual RBO humidity series")
+```
+
+From ***Figure 4*** of time series plot for annual RBO humidity series, we can interpret as follows:
+
+1. **Trend -** The plot is showing no trend.
+2. **Seasonality -** No seasonality is noticeable.
+3. **Changing Variation -** Unable to see any fluctuations that are greater or lesser or both consecutively,
+hence change in variance is not found.
+4. **Behaviour –** The series shows a moving average (up and down) behaviour.
+5. **Change Point -**  Three interventions appear to occur in 1900, 2000 and, 2010.
+
+
+```{r}
+plot(rbo_RBO.ts, xlab='Year', main = " Figure 5. Time series plot of annual RBO series")
+```
+
+From ***Figure 5*** of time series plot for annual RBO series, we can interpret as follows:
+
+1. **Trend -** The plot is showing kind of downward (unpredictable) trend.
+2. **Seasonality -** No seasonality is noticeable.
+3. **Changing Variation -** Unable to see any fluctuations that are greater or lesser or both consecutively,
+hence change in variance is not found.
+4. **Behaviour –** The series shows a moving average (up and down) behaviour.
+5. **Change Point -**  An intervention appear to occur in 1996.
+
+*
+In order to precisely depict the secondary RBO series alongside the explicative all the rest response series in the same figure, we pleasure normalize the data. The code below gives a time series tale to investigate the series relationship.
+
+```{r}
+rbo.scaled = scale(rbo.ts)
+plot(rbo.scaled, plot.type="s",col = c("black", "red", "blue", "green","brown"), main = "Figure 6. annual RBO data series")
+legend("topleft",lty=1, text.width =5, col=c("black", "red", "blue", "green","brown"), c("RBO","Temperature", "Rainfall", "Radiation", "Humidity"))
+```
+
+From **figure 6** we can infer all of the above five-time series drawn together after scaling and centering.
+
+## Model Fitting - RBO vs Temperature
+
+### Fitting finite distributed lag models 
+
+To determine the model’s finite lag length, we build a loop that calculates accuracy metrics such as AIC/BIC and MASE for models with varying lag lengths and selects the model with the lowest values.
+
+```{r}
+
+for ( i in 1:5){
+  model4 = dlm(x = as.vector(rbo_temp.ts), y = as.vector(rbo_RBO.ts), q = i )
+  cat("q = ", i, "AIC = ", AIC(model4$model), "BIC = ", BIC(model4$model), "MASE =", MASE(model4)$MASE, "\n")
+}
+
+```
+
+According to the output of finite distributed lag, lag 5 has the lowest MASE, AIC, and BIC values which are MASE = 0.8594175, AIC =  -91.46337 BIC =  -81.3986. As a result, we provide a lag duration of (q=5).
+
+*
+Fitting a finite DLM with a lag of 5 and doing the diagostic checking for **Temperature** with respect to dependent variable **RBO**
+
+```{r}
+finite_DLM_11 <- dlm(x = as.vector(rbo_temp.ts), y = as.vector(rbo_RBO.ts), q = 5)
+summary(finite_DLM_11)
+```
+
+The above model of the finite distributed lag model has q=5, Almost all lag weights in a predictor series are not statistically significant at the 5% level. The adjusted R-squared of the above model is 0.257, indicating that this only explains 25.7 percent of the variability in the model. The whole model has a p-value of 0.06401, which is greater than 0.05, which shows that it is not statistically significant.
+
+
+```{r}
+checkresiduals(finite_DLM_11$model)
+```
+```{r}
+shapiro.test(residuals(finite_DLM_11$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 7:***
+
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals might partially have significant serial correlation.
+*
+Since the p-value is greater than 0.05, the Beusch-Godfrey test does not maintain serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_dlm_11 =vif(finite_DLM_11$model)
+vif_dlm_11
+```
+
+
+```{r}
+vif_dlm_11 >10
+```
+
+*
+According to the VIF values, the above model with q=5 does not have a multicollinearity problem. 
+
+### Fitting polynomial distributed lag models 
+
+```{r}
+for(i in 1:5){
+        for(j in 1:5){
+                model_4.1 <- polyDlm(x = as.vector(rbo_temp.ts),y = as.vector(rbo_RBO.ts), q = i, k = j, show.beta = FALSE)
+                cat("q:",i,"k:",j, "AIC:",AIC(model_4.1$model), "BIC:", BIC(model_4.1$model),"MASE =", MASE(model_4.1)$MASE, "\n")
+        }
+}
+```
+
+According to the output of polynomial distributed lag model, lag =5 and k=5 has the lowest MASE, AIC, and BIC values which are MASE = 0.8594175 , AIC: -91.46337 BIC: -81.3986. As a result, we provide a lag duration of (q=5, k=5).
+
+*
+Fitting a polynomial DLM for**Temperature** with respect to dependent variable **RBO**
+
+```{r}
+poly_DLM_11 <- polyDlm(x = as.vector(rbo_temp.ts), y = as.vector(rbo_RBO.ts), q = 5, k = 5)
+summary(poly_DLM_11)
+```
+
+
+The above model of the polynomial distributed lag model has q=5 and k=5, and there are no consequential terms at the 5% level of significance. The adjusted R-squared of the above model is  0.257, indicating that this only explains 25.7 percent of the variability in the model. The whole model has a p-value of 0.06401, which is greater than 0.05, which shows that it is not statistically significant.
+
+```{r}
+checkresiduals(poly_DLM_11$model)
+```
+
+```{r}
+shapiro.test(residuals(poly_DLM_11$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 8:***
+
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals might partially have significant serial correlation.
+*
+Since the p-value is greater than 0.05, the Beusch-Godfrey test does not maintain serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_poly_11 =vif(poly_DLM_11$model)
+vif_poly_11
+```
+
+
+```{r}
+vif_poly_11 >10
+```
+
+*
+According to the VIF values, the above model with q=5 and k=5 has a multicollinearity problem.
+
+### Fitting Koyck model 
+
+*
+Fitting a Koyck model for**Temperature** with respect to dependent variable **RBO**
+
+```{r}
+Koyck_model_11 = koyckDlm(x = as.vector(rbo_temp.ts) , y = as.vector(rbo_RBO.ts))
+summary(Koyck_model_11$model, diagnostics=TRUE)
+```
+
+*
+The above Koyck model states that there are no consequential terms at the 5% level of significance. The adjusted R-squared of the above model is   -1.789, indicating that this only explains -178.9 percent of the variability in the model. The whole model has a p-value of 0.1397, which is greater than 0.05, which shows that it is not statistically significant.
+*
+We may conclude from the Wu-Hausman test (p-value greater than 0.05) that there is no significant correlation between the descriptive variable and the error term at the 5% level.
+
+```{r}
+checkresiduals(Koyck_model_11$model)
+```
+
+```{r}
+shapiro.test(residuals(Koyck_model_11$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 9:***
+
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_loyck_11=vif(Koyck_model_11$model)
+vif_loyck_11
+```
+
+```{r}
+vif_loyck_11>10
+```
+
+*
+According to the VIF values, the above model does not have a multicollinearity problem. 
+
+### Fitting autoregressive distributed lag models
+
+Autoregressive distributed lag models are the last model type derived from the time series regression technique. To describe the parameters of ARDL(p,q), we build a loop that fits autoregressive distributed lag models for a variety of lag lengths and AR process orders and calculates accuracy metrics such as AIC/BIC and MASE.
+
+```{r}
+for (i in 1:5){
+  for(j in 1:5){
+    model_4.2 = ardlDlm(x = as.vector(rbo_temp.ts), y = as.vector(rbo_RBO.ts), p = i , q = j)
+    cat("p =", i, "q =", j, "AIC =", AIC(model_4.2$model), "BIC =", BIC(model_4.2$model), "MASE =", MASE(model_4.2)$MASE, "\n")
+ }
+}
+```
+
+According to the output of autoregressive distributed lag model, the lowest MASE, AIC, and BIC values which are MASE = 0.7544104 , AIC: -95.45616, BIC: -80.359. As a result, we provide a lag duration of (p=5,q=4).
+
+*
+Fitting a autoregressive distributed lag model for **Temperature** with respect to dependent variable **RBO**.
+
+```{r}
+ardldlm_t3_54 = ardlDlm(x = as.vector(rbo_temp.ts), y = as.vector(rbo_RBO.ts),p = 5, q =4)
+summary(ardldlm_t3_54)
+```
+
+The above model of the autoregressive distributed lag model has p=5 and q=4, all the attributes has no consequential terms at the 5% level of significance. The adjusted R-squared of the above model is 0.4066, indicating that this only explains 40.66 percent of the variability in the model. The whole model has a p-value of 0.03963, which is less than 0.05, which shows that it is statistically significant.
+
+
+```{r}
+checkresiduals(ardldlm_t3_54$model)
+```
+
+```{r}
+shapiro.test(residuals(ardldlm_t3_54$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 10:***
+
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+Since the p-value is less than 0.05, the Beusch-Godfrey test maintains serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+Now checking the multicollinearity issue
+
+
+```{r}
+vif_ardldlm_t3_54=vif(ardldlm_t3_54$model)
+vif_ardldlm_t3_54
+```
+
+
+```{r}
+vif_ardldlm_t3_54>10
+```
+
+
+According to the VIF values, the above model does not have the multicollinearity problem.
+
+## Model Fitting - RBO vs Rainfall
+
+### Fitting finite distributed lag models 
+
+To determine the model’s finite lag length, we build a loop that calculates accuracy metrics such as AIC/BIC and MASE for models with varying lag lengths and selects the model with the lowest values.
+
+```{r}
+
+for ( i in 1:5){
+  model5 = dlm(x = as.vector(rbo_rainfall.ts), y = as.vector(rbo_RBO.ts), q = i )
+  cat("q = ", i, "AIC = ", AIC(model5$model), "BIC = ", BIC(model5$model), "MASE =", MASE(model5)$MASE, "\n")
+}
+
+```
+
+According to the output of finite distributed lag, lag 5 has the lowest MASE, AIC, and BIC values which are MASE = 0.925677, AIC =  -87.24242 BIC =  -77.17765. As a result, we provide a lag duration of (q=5).
+
+*
+Fitting a finite DLM with a lag of 5 and doing the diagostic checking for **Rainfall** with respect to dependent variable **RBO**
+
+```{r}
+finite_DLM_22 <- dlm(x = as.vector(rbo_rainfall.ts), y = as.vector(rbo_RBO.ts), q = 5)
+summary(finite_DLM_22)
+```
+
+The above model of the finite distributed lag model has q=5, all lag weights in a predictor series are not statistically significant at the 5% level. The adjusted R-squared of the above model is 0.126, indicating that this only explains 12.6 percent of the variability in the model. The whole model has a p-value of 0.2013, which is greater than 0.05, which shows that it is not statistically significant.
+
+
+```{r}
+checkresiduals(finite_DLM_22$model)
+```
+```{r}
+shapiro.test(residuals(finite_DLM_22$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 11:***
+
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals might partially have significant serial correlation.
+*
+Since the p-value is greater than 0.05, the Beusch-Godfrey test does not maintain serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals a breach of the normalcy assumptions.
+*
+Since the p-value is < 0.05 we reject the null hypothesis(H0). This implies that errors are not normally distributed. Hence assumption is violated.
+
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_dlm_22 =vif(finite_DLM_22$model)
+vif_dlm_22
+```
+
+
+```{r}
+vif_dlm_22 >10
+```
+
+*
+According to the VIF values, the above model with q=5 does not have a multicollinearity problem. 
+
+### Fitting polynomial distributed lag models 
+
+```{r}
+for(i in 1:5){
+        for(j in 1:5){
+                model5.1 <- polyDlm(x = as.vector(rbo_rainfall.ts),y = as.vector(rbo_RBO.ts), q = i, k = j, show.beta = FALSE)
+                cat("q:",i,"k:",j, "AIC:",AIC(model5.1$model), "BIC:", BIC(model5.1$model),"MASE =", MASE(model5.1)$MASE, "\n")
+        }
+}
+```
+
+According to the output of polynomial distributed lag model, lag =5 and k=3 has the lowest MASE, AIC, and BIC values which are MASE = 0.9083469, AIC: -90.96436, BIC: -83.41578. As a result, we provide a lag duration of (q=5, k=3).
+
+*
+Fitting a polynomial DLM for**Rainfall** with respect to dependent variable **RBO**
+
+```{r}
+poly_DLM_22 <- polyDlm(x = as.vector(rbo_rainfall.ts), y = as.vector(rbo_RBO.ts), q = 5, k = 3)
+summary(poly_DLM_22)
+```
+
+
+The above model of the polynomial distributed lag model has q=5 and k=3, and there are no consequential terms at the 5% level of significance. The adjusted R-squared of the above model is  0.2007, indicating that this only explains 20.07 percent of the variability in the model. The whole model has a p-value of 0.2007, which is greater than 0.05, which shows that it is not statistically significant.
+
+
+```{r}
+checkresiduals(poly_DLM_22$model)
+```
+
+```{r}
+shapiro.test(residuals(poly_DLM_22$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 12:***
+
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals might partially have significant serial correlation.
+*
+Since the p-value is greater than 0.05, the Beusch-Godfrey test does not maintain serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals a breach of the normalcy assumptions.
+*
+Since the p-value is < 0.05 we reject the null hypothesis(H0). This implies that errors are not normally distributed. Hence assumption is violated.
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_poly_22 =vif(poly_DLM_22$model)
+vif_poly_22
+```
+
+
+```{r}
+vif_poly_22 >10
+```
+
+*
+According to the VIF values, the above model with q=5 and k=3 is slightly affected by multicollinearity.
+
+### Fitting Koyck model 
+
+*
+Fitting a Koyck model for**Rainfall** with respect to dependent variable **RBO**
+
+```{r}
+Koyck_model_22 = koyckDlm(x = as.vector(rbo_rainfall.ts) , y = as.vector(rbo_RBO.ts))
+summary(Koyck_model_22$model, diagnostics=TRUE)
+```
+
+*
+The above Koyck model states that there are no consequential terms at the 5% level of significance. The adjusted R-squared of the above model is  -307.8, indicating that this only explains -30780 percent of the variability in the model. The whole model has a p-value of 0.9846, which is greater than 0.05, which shows that it is not statistically significant.
+*
+We may conclude from the Wu-Hausman test (p-value greater than 0.05) that there is no significant correlation between the descriptive variable and the error term at the 5% level.
+
+```{r}
+checkresiduals(Koyck_model_22$model)
+```
+
+```{r}
+shapiro.test(residuals(Koyck_model_22$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 13:***
+
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_koyck_22=vif(Koyck_model_22$model)
+vif_koyck_22
+```
+
+```{r}
+vif_koyck_22>10
+```
+
+*
+According to the VIF values, the above model has a multicollinearity problem. 
+
+### Fitting autoregressive distributed lag models
+
+Autoregressive distributed lag models are the last model type derived from the time series regression technique. To describe the parameters of ARDL(p,q), we build a loop that fits autoregressive distributed lag models for a variety of lag lengths and AR process orders and calculates accuracy metrics such as AIC/BIC and MASE.
+
+```{r}
+for (i in 1:5){
+  for(j in 1:5){
+    model_5.2 = ardlDlm(x = as.vector(rbo_rainfall.ts), y = as.vector(rbo_RBO.ts), p = i , q = j)
+    cat("p =", i, "q =", j, "AIC =", AIC(model_5.2$model), "BIC =", BIC(model_5.2$model), "MASE =", MASE(model_5.2)$MASE, "\n")
+ }
+}
+```
+
+According to the output of autoregressive distributed lag model, the lowest MASE, AIC, and BIC values which are MASE = 0.7237105 , AIC: -93.91526, BIC: -80.0762. As a result, we provide a lag duration of (p=5,q=3).
+
+*
+Fitting a autoregressive distributed lag model for **Rainfall** with respect to dependent variable **RBO**.
+
+```{r}
+ardldlm_t3_53 = ardlDlm(x = as.vector(rbo_rainfall.ts), y = as.vector(rbo_RBO.ts),p = 5, q =3)
+summary(ardldlm_t3_53)
+```
+
+The above model of the autoregressive distributed lag model has p=5 and q=3, all the attributes has no consequential terms at the 5% level of significance. The adjusted R-squared of the above model is 0.3625, indicating that this only explains 36.25 percent of the variability in the model. The whole model has a p-value of 0.04715, which is less than 0.05, which shows that it is statistically significant.
+
+
+```{r}
+checkresiduals(ardldlm_t3_53$model)
+```
+
+```{r}
+shapiro.test(residuals(ardldlm_t3_53$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 14:***
+
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+Since the p-value is greater than 0.05, the Beusch-Godfrey test does no maintain serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+Now checking the multicollinearity issue
+
+
+```{r}
+vif_ardldlm_t3_53=vif(ardldlm_t3_53$model)
+vif_ardldlm_t3_53
+```
+
+
+```{r}
+vif_ardldlm_t3_53>10
+
+```
+
+
+According to the VIF values, the above model does not have multicollinearity problem.
+
+## Model Fitting - RBO vs Radiation
+
+### Fitting finite distributed lag models 
+
+To determine the model’s finite lag length, we build a loop that calculates accuracy metrics such as AIC/BIC and MASE for models with varying lag lengths and selects the model with the lowest values.
+
+```{r}
+
+for ( i in 1:5){
+  model_6 = dlm(x = as.vector(rbo_radiation.ts), y = as.vector(rbo_RBO.ts), q = i )
+  cat("q = ", i, "AIC = ", AIC(model_6$model), "BIC = ", BIC(model_6$model), "MASE =", MASE(model_6)$MASE, "\n")
+}
+
+```
+
+According to the output of finite distributed lag, lag 5 has the lowest MASE, AIC, and BIC values which are MASE = 1.063029 , AIC =  -97.71113 BIC =  -92.10634. As a result, we provide a lag duration of (q=1).
+
+*
+Fitting a finite DLM with a lag of 1 and doing the diagostic checking for **Radiation** with respect to dependent variable **RBO**
+
+```{r}
+finite_DLM_33 <- dlm(x = as.vector(rbo_radiation.ts), y = as.vector(rbo_RBO.ts), q = 1)
+summary(finite_DLM_33)
+```
+
+The above model of the finite distributed lag model has q=1,  all lag weights in a predictor series are not statistically significant at the 5% level. The adjusted R-squared of the above model is 0.06311, indicating that this only explains 6.311 percent of the variability in the model. The whole model has a p-value of 0.1581, which is greater than 0.05, which shows that it is not statistically significant.
+
+```{r}
+checkresiduals(finite_DLM_33$model)
+```
+```{r}
+shapiro.test(residuals(finite_DLM_33$model))
+```
+
+
+The residual graphs for model 2.1 are shown in ***Figure 15:***
+
+*
+The time series plot clearly shows a random trend.
+*
+We may determine from the ACF plot that the serial correlation remaining in the residuals is significant.
+*
+Since the p-value is less than 0.05, the Beusch-Godfrey test maintains serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_dlm_33 =vif(finite_DLM_33$model)
+vif_dlm_33
+```
+
+
+```{r}
+vif_dlm_33 >10
+```
+
+*
+According to the VIF values, the above model with q=1 does not have a multicollinearity problem. 
+
+### Fitting polynomial distributed lag models 
+
+```{r}
+for(i in 1:10){
+        for(j in 1:5){
+                model_6.1 <- polyDlm(x = as.vector(rbo_radiation.ts),y = as.vector(rbo_RBO.ts), q = i, k = j, show.beta = FALSE)
+                cat("q:",i,"k:",j, "AIC:",AIC(model_6.1$model), "BIC:", BIC(model_6.1$model),"MASE =", MASE(model_6.1)$MASE, "\n")
+        }
+}
+```
+
+According to the output of polynomial distributed lag model, lag =10 and k=4 has the lowest MASE, AIC, and BIC values which are MASE = 0.6549231 , AIC: -85.0392, BIC: -77.72754. As a result, we provide a lag duration of (q=10, k=4).
+
+*
+Fitting a polynomial DLM for**Radiation** with respect to dependent variable **RBO**
+
+```{r}
+poly_DLM_33 <- polyDlm(x = as.vector(rbo_radiation.ts), y = as.vector(rbo_RBO.ts), q = 10, k = 4)
+summary(poly_DLM_33)
+```
+
+
+The above model of the polynomial distributed lag model has q=10 and k=4, and there are no consequential terms at the 5% level of significance. The adjusted R-squared of the above model is  -0.08155, indicating that this only explains -8.155 percent of the variability in the model. The whole model has a p-value of 0.633, which is greater than 0.05, which shows that it is not statistically significant.
+
+```{r}
+checkresiduals(poly_DLM_33$model)
+```
+
+```{r}
+shapiro.test(residuals(poly_DLM_33$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 16:***
+
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is greater than 0.05, the Beusch-Godfrey test does not maintain serial correlation at a 5% level of significance.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_poly_33 =vif(poly_DLM_33$model)
+vif_poly_33
+```
+
+
+```{r}
+vif_poly_33 >10
+```
+
+*
+According to the VIF values, the above model with q=10 and k=4 has a multicollinearity problem.
+
+### Fitting Koyck model 
+
+*
+Fitting a Koyck model for **Radiation** with respect to dependent variable **RBO**
+
+```{r}
+Koyck_model_33 = koyckDlm(x = as.vector(rbo_radiation.ts) , y = as.vector(rbo_RBO.ts))
+summary(Koyck_model_33$model, diagnostics=TRUE)
+
+```
+
+*
+The above Koyck model states that there are no consequential terms at the 5% level of significance. The adjusted R-squared of the above model is  -0.06498, indicating that this only explains -6.498 percent of the variability in the model. The whole model has a p-value of 0.01732, which is less than 0.05, which shows that it is statistically significant.
+*
+We may conclude from the Wu-Hausman test (p-value greater than 0.05) that there is no significant correlation between the descriptive variable and the error term at the 5% level.
+
+```{r}
+checkresiduals(Koyck_model_33$model)
+```
+
+```{r}
+shapiro.test(residuals(Koyck_model_33$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 17:***
+
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_koyck_33=vif(Koyck_model_33$model)
+vif_koyck_33
+```
+
+```{r}
+vif_koyck_33>10
+```
+
+*
+According to the VIF values, the above model does not have a multicollinearity problem. 
+
+### Fitting autoregressive distributed lag models
+
+Autoregressive distributed lag models are the last model type derived from the time series regression technique. To describe the parameters of ARDL(p,q), we build a loop that fits autoregressive distributed lag models for a variety of lag lengths and AR process orders and calculates accuracy metrics such as AIC/BIC and MASE.
+
+```{r}
+for (i in 1:5){
+  for(j in 1:5){
+    model_6.2 = ardlDlm(x = as.vector(rbo_radiation.ts), y = as.vector(rbo_RBO.ts), p = i , q = j)
+    cat("p =", i, "q =", j, "AIC =", AIC(model_6.2$model), "BIC =", BIC(model_6.2$model), "MASE =", MASE(model_6.2)$MASE, "\n")
+ }
+}
+```
+
+According to the output of autoregressive distributed lag model, the lowest MASE, AIC, and BIC values which are MASE = 0.7009101 , -97.36077 BIC = -83.5217. As a result, we provide a lag duration of (p=5,q=5).
+
+*
+Fitting a autoregressive distributed lag model for **Radiation** with respect to dependent variable **RBO**.
+
+```{r}
+ardldlm_t3_35_radiation = ardlDlm(x = as.vector(rbo_radiation.ts), y = as.vector(rbo_RBO.ts),p = 3, q =5)
+summary(ardldlm_t3_35_radiation)
+```
+
+The above model of the autoregressive distributed lag model has p=3 and q=5, all the attributes has no consequential terms at the 5% level of significance. The adjusted R-squared of the above model is 0.4416, indicating that this only explains 44.16 percent of the variability in the model. The whole model has a p-value of 0.02061, which is less than 0.05, which shows that it is statistically significant.
+
+
+```{r}
+checkresiduals(ardldlm_t3_35_radiation$model)
+```
+
+```{r}
+shapiro.test(residuals(ardldlm_t3_35_radiation$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 18:***
+
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+Since the p-value is less than 0.05, the Beusch-Godfrey test maintains serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+Now checking the multicollinearity issue
+
+
+```{r}
+vif_ardldlm_t3_35_radiation=vif(ardldlm_t3_35_radiation$model)
+vif_ardldlm_t3_35_radiation
+```
+
+
+```{r}
+vif_ardldlm_t3_35_radiation>10
+
+```
+
+
+According to the VIF values, the above model does not have multicollinearity problem.
+
+
+## Model Fitting - FFD vs Humidity
+
+##@ Fitting finite distributed lag models 
+
+To determine the model’s finite lag length, we build a loop that calculates accuracy metrics such as AIC/BIC and MASE for models with varying lag lengths and selects the model with the lowest values.
+
+```{r}
+
+for ( i in 1:5){
+  model_7 = dlm(x = as.vector(rbo_humidity.ts), y = as.vector(rbo_RBO.ts), q = i )
+  cat("q = ", i, "AIC = ", AIC(model_7$model), "BIC = ", BIC(model_7$model), "MASE =", MASE(model_7)$MASE, "\n")
+}
+
+```
+
+According to the output of finite distributed lag, lag 1 has the lowest MASE, AIC, and BIC values which are MASE = 1.101099, AIC =  -94.56619 BIC =  -88.9614. As a result, we provide a lag duration of (q=1).
+
+*
+Fitting a finite DLM with a lag of 6 and doing the diagostic checking for **Humidity** with respect to dependent variable **FFD**
+
+```{r}
+finite_DLM_44 <- dlm(x = as.vector(rbo_humidity.ts), y = as.vector(rbo_RBO.ts), q = 1)
+summary(finite_DLM_44)
+```
+
+The above model of the finite distributed lag model has q=1, all lag weights in a predictor series are not statistically significant at the 5% level. The adjusted R-squared of the above model is -0.04044, indicating that this only explains -4.044 percent of the variability in the model. The whole model has a p-value of 0.6509, which is greater than 0.05, which shows that it is not statistically significant.
+
+```{r}
+checkresiduals(finite_DLM_44$model)
+```
+```{r}
+shapiro.test(residuals(finite_DLM_44$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 19:***
+
+*
+The time series plot clearly shows a random trend.
+*
+The ACF plot has only one lag which is significant, indicating presence of autocorrelation and seasonality in the residuals.
+*
+Since the p-value is less than 0.05, the Beusch-Godfrey test maintains serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_dlm_44 =vif(finite_DLM_44$model)
+vif_dlm_44
+```
+
+
+```{r}
+vif_dlm_44 >10
+```
+
+*
+According to the VIF values, the above model with q=1 does not have a multicollinearity problem. 
+
+### Fitting polynomial distributed lag models 
+
+```{r}
+for(i in 1:5){
+        for(j in 1:5){
+                model_7.1 <- polyDlm(x = as.vector(rbo_humidity.ts),y = as.vector(rbo_RBO.ts), q = i, k = j, show.beta = FALSE)
+                cat("q:",i,"k:",j, "AIC:",AIC(model_7.1$model), "BIC:", BIC(model_7.1$model),"MASE =", MASE(model_7.1)$MASE, "\n")
+        }
+}
+```
+
+According to the output of polynomial distributed lag model, lag =1 and k=1 has the lowest MASE, AIC, and BIC values which are MASE = 1.101099, AIC: -94.56619, BIC: -88.9614 As a result, we provide a lag duration of (q=1, k=1).
+
+*
+Fitting a polynomial DLM for**Humidity** with respect to dependent variable **RBO**
+
+```{r}
+poly_DLM_44 <- polyDlm(x = as.vector(rbo_humidity.ts), y = as.vector(rbo_RBO.ts), q = 1, k = 1)
+summary(poly_DLM_44)
+```
+
+
+The above model of the polynomial distributed lag model has q=1 and k=1, and there are no consequential terms at the 5% level of significance. The adjusted R-squared of the above model is  -0.04044, indicating that this only explains -4.044 percent of the variability in the model. The whole model has a p-value of 0.6509, which is greater than 0.05, which shows that it is not statistically significant.
+
+```{r}
+checkresiduals(poly_DLM_44$model)
+```
+
+```{r}
+shapiro.test(residuals(poly_DLM_44$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 20:***
+
+*
+The time series plot clearly shows a random trend.
+*
+The ACF plot has only one lag which is significant, indicating presence of autocorrelation and seasonality in the residuals.
+*
+Since the p-value is less than 0.05, the Beusch-Godfrey test maintains serial correlation at a 5% level of significance.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_poly_44 =vif(poly_DLM_44$model)
+vif_poly_44
+```
+
+
+```{r}
+vif_poly_44 >10
+```
+
+*
+According to the VIF values, the above model with q=1 and k=1 does not have multicollinearity problem.
+
+### Fitting Koyck model 
+
+*
+Fitting a Koyck model for**Humidity** with respect to dependent variable **RBO**
+
+```{r}
+Koyck_model_44 = koyckDlm(x = as.vector(rbo_humidity.ts) , y = as.vector(rbo_RBO.ts))
+summary(Koyck_model_44$model, diagnostics=TRUE)
+```
+
+*
+The above Koyck model states that there are no consequential terms at the 5% level of significance. The adjusted R-squared of the above model is  0.1682, indicating that this only explains 16.82 percent of the variability in the model. The whole model has a p-value of 0.009161, which is less than 0.05, which shows that it is statistically significant.
+*
+We may conclude from the Wu-Hausman test (p-value greater than 0.05) that there is no significant correlation between the descriptive variable and the error term at the 5% level.
+
+```{r}
+checkresiduals(Koyck_model_44$model)
+```
+
+```{r}
+shapiro.test(residuals(Koyck_model_44$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 21:***
+
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+Now checking the multicollinearity issue
+
+```{r}
+vif_koyck_44=vif(Koyck_model_44$model)
+vif_koyck_44
+```
+
+```{r}
+vif_koyck_44>10
+```
+
+*
+According to the VIF values, the above model does not have a multicollinearity problem. 
+
+### Fitting autoregressive distributed lag models
+
+Autoregressive distributed lag models are the last model type derived from the time series regression technique. To describe the parameters of ARDL(p,q), we build a loop that fits autoregressive distributed lag models for a variety of lag lengths and AR process orders and calculates accuracy metrics such as AIC/BIC and MASE.
+
+```{r}
+for (i in 1:5){
+  for(j in 1:5){
+    model_7.2 = ardlDlm(x = as.vector(rbo_humidity.ts), y = as.vector(rbo_RBO.ts), p = i , q = j)
+    cat("p =", i, "q =", j, "AIC =", AIC(model_7.2$model), "BIC =", BIC(model_7.2$model), "MASE =", MASE(model_7.2)$MASE, "\n")
+ }
+}
+```
+
+According to the output of autoregressive distributed lag model, the lowest MASE, AIC, and BIC values which are MASE = 0.7128379 , AIC: -96.6322 , BIC: -80.27694. As a result, we provide a lag duration of (p=5,q=5).
+
+*
+Fitting a autoregressive distributed lag model for **Humidity** with respect to dependent variable **RBO**.
+
+```{r}
+ardldlm_t3_55_humidity = ardlDlm(x = as.vector(rbo_humidity.ts), y = as.vector(rbo_RBO.ts),p = 5, q =5)
+summary(ardldlm_t3_55_humidity)
+```
+
+The above model of the autoregressive distributed lag model has p=5 and q=5, all the attributes has no consequential terms at the 5% level of significance. The adjusted R-squared of the above model is 0.4373, indicating that this only explains 43.73 percent of the variability in the model. The whole model has a p-value of 0.03819, which is less than 0.05, which shows that it is statistically significant.
+
+
+```{r}
+checkresiduals(ardldlm_t3_55_humidity)
+```
+
+```{r}
+shapiro.test(residuals(ardldlm_t3_55_humidity$model))
+```
+
+The residual graphs for the above model are shown in ***Figure 22:***
+
+*
+The time series plot clearly shows a random trend.
+*
+In accordance with the ACF plot, we may infer that the residuals do not have any significant serial correlations.
+*
+The histogram of patterned residuals reveals that there is no violation in normality assumptions.
+*
+Since the p-value is > 0.05 we do not have enough evidence to reject H0. This implies that normality error assumption is not violated.
+
+
+Now checking the multicollinearity issue
+
+
+```{r}
+vif_ardldlm_t3_55_humidity=vif(ardldlm_t3_55_humidity$model)
+vif_ardldlm_t3_55_humidity
+```
+
+
+```{r}
+vif_ardldlm_t3_55_humidity>10
+
+```
+
+
+According to the VIF values, the above model does not have multicollinearity problem.
+
+*
+The data frame has been constructed to contain the model accuracy values, such as AIC/BIC and MASE, from the models that have been fitted so far.
+
+```{r}
+model_dlm_t3 <- data.frame(Model=character(),MASE=numeric(),
+                           BIC= numeric(),AICC=numeric(),AIC=numeric())
+
+model_dlm_t3 = rbind(model_dlm_t3,cbind(Model="Finite DLM_temperature",
+                                               AIC = AIC(finite_DLM_11),
+                                              BIC = BIC(finite_DLM_11),
+                                              MASE= MASE(finite_DLM_11)
+))
+model_dlm_t3 = rbind(model_dlm_t3,cbind(Model="Polynomial DLM_temperature",
+                                               BIC = BIC(poly_DLM_11),
+                                               AIC = AIC(poly_DLM_11),
+                                              MASE= MASE(poly_DLM_11)
+                                              ))
+model_dlm_t3 = rbind(model_dlm_t3,cbind(Model="Task3_Koyck Model temperature",
+                                               AIC = AIC(Koyck_model_11),
+                                      BIC = BIC(Koyck_model_11),
+                                              MASE= MASE(Koyck_model_11)
+                                              ))
+model_dlm_t3 = rbind(model_dlm_t3,cbind(Model="autoregressive_dlm_t3_54_temperature",
+                                               AIC = AIC(ardldlm_t3_54),
+                                      BIC = BIC(ardldlm_t3_54),
+                                              MASE= MASE(ardldlm_t3_54)
+                                              ))
+
+
+
+model_dlm_t3 = rbind(model_dlm_t3,cbind(Model="Finite DLM_rainfall",
+                                               AIC = AIC(finite_DLM_22),
+                                              BIC = BIC(finite_DLM_22),
+                                              MASE= MASE(finite_DLM_22)
+))
+model_dlm_t3 = rbind(model_dlm_t3,cbind(Model="Polynomial DLM_rainfall",
+                                               BIC = BIC(poly_DLM_22),
+                                               AIC = AIC(poly_DLM_22),
+                                              MASE= MASE(poly_DLM_22)
+                                              ))
+model_dlm_t3 = rbind(model_dlm_t3,cbind(Model="Koyck Model rainfall",
+                                               AIC = AIC(Koyck_model_22),
+                                      BIC = BIC(Koyck_model_22),
+                                              MASE= MASE(Koyck_model_22)
+                                              ))
+model_dlm_t3 = rbind(model_dlm_t3,cbind(Model="autoregressive_dlm_t3_53_rainfall",
+                                               AIC = AIC(ardldlm_t3_53),
+                                      BIC = BIC(ardldlm_t3_53),
+                                              MASE= MASE(ardldlm_t3_53)
+                                              ))
+
+
+model_dlm_t3 = rbind(model_dlm_t3,cbind(Model="Finite DLM_radiation",
+                                               AIC = AIC(finite_DLM_33),
+                                              BIC = BIC(finite_DLM_33),
+                                              MASE= MASE(finite_DLM_33)
+))
+model_dlm_t3 = rbind(model_dlm_t3,cbind(Model="Polynomial DLM_radiation",
+                                               BIC = BIC(poly_DLM_33),
+                                               AIC = AIC(poly_DLM_33),
+                                              MASE= MASE(poly_DLM_33)
+                                              ))
+model_dlm_t3 = rbind(model_dlm_t3,cbind(Model="Koyck Model radiation",
+                                               AIC = AIC(Koyck_model_33),
+                                      BIC = BIC(Koyck_model_33),
+                                              MASE= MASE(Koyck_model_33)
+                                              ))
+model_dlm_t3 = rbind(model_dlm_t3,cbind(Model="autoregressive_dlm_t3_35_radiation",
+                                               AIC = AIC(ardldlm_t3_35_radiation),
+                                      BIC = BIC(ardldlm_t3_35_radiation),
+                                              MASE= MASE(ardldlm_t3_35_radiation)
+                                              ))
+
+
+
+model_dlm_t3 = rbind(model_dlm_t3,cbind(Model="Finite DLM_humidity",
+                                               AIC = AIC(finite_DLM_44),
+                                              BIC = BIC(finite_DLM_44),
+                                              MASE= MASE(finite_DLM_44)
+))
+model_dlm_t3 = rbind(model_dlm_t3,cbind(Model="Polynomial DLM_humidity",
+                                               BIC = BIC(poly_DLM_44),
+                                               AIC = AIC(poly_DLM_44),
+                                              MASE= MASE(poly_DLM_44)
+                                              ))
+model_dlm_t3 = rbind(model_dlm_t3,cbind(Model="Koyck Model humidity",
+                                               AIC = AIC(Koyck_model_44),
+                                      BIC = BIC(Koyck_model_44),
+                                              MASE= MASE(Koyck_model_44)
+                                              ))
+model_dlm_t3 = rbind(model_dlm_t3,cbind(Model="autoregressive_dlm_t3_55_humidity",
+                                               AIC = AIC(ardldlm_t3_55_humidity),
+                                      BIC = BIC(ardldlm_t3_55_humidity),
+                                              MASE= MASE(ardldlm_t3_55_humidity)
+                                              ))
+
+
+sortScore(model_dlm_t3,score = "mase")
+```
+
+
+## Forecasting 
+
+```{r}
+Covariate_x_values_for_Task_3_ <- read_csv("/Users/zuaibshaikh/Desktop/SEM 4/Forecasting/Final Project/Covariate x-values for Task 3  .csv")
+head(Covariate_x_values_for_Task_3_)
+```
+
+```{r}
+forecasts.dlm = dLagM::forecast(model= poly_DLM_33, x= Covariate_x_values_for_Task_3_$Radiation, h=3)$forecasts
+
+plot(ts(c(as.vector(rbo_RBO.ts),forecasts.dlm),start=1984),  col="blue", type="o", main="Rank-based order (RBO) series with three-year forecasts considering comparative radiation as a predictor", xlab= "Year", ylab="RBO identicals") 
+lines(ts(as.vector(rbo_RBO.ts),start=1984), col="black",type="o")
+```
+
+# Task 3 Part (b) - The task is to perform the appropriate analysis and obtain the 3 year ahead forecasts
+
+The objective of this task is to predict the best RBO 3-year forecasts for the RBO series using the dynlm package. From 1983 to 2014, this data examines the impact of long-term climatic changes in Victoria on the relative blooming order similarity of 81 plant species. The species were ranked yearly based on the time it took to blossom (FFD), and changes in flowering order were determined by computing the similarity between the annual flowering order and the flowering order from 1983 using the Rank-based Order similarity metric (RBO).
+
+## Dynamic Lag Models
+
+Intervention results in an immediate and permanent shift in the mean function
+
+```{r}
+rbo_RBO.ts.tr_1 = log(rbo_RBO.ts)
+plot(rbo_RBO.ts.tr_1,ylab='Log of RBO in metric',xlab='Year', main = "Time series plot of the logarithm of RBO metric.")
+
+```
+
+*
+Log transformation makes it more stabile
+
+```{r}
+
+Y.t = rbo_RBO.ts
+T = 13
+S.t = 1*(seq (Y.t) >= T)
+S.t.1 = lag (S.t,+1)
+
+MModel1 =dynlm(Y.t ~  L(Y.t , k = 1 ) + S.t + trend(Y.t))
+summary(MModel1)
+checkresiduals(MModel1)
+MModel2 =dynlm(Y.t ~  L(Y.t , k = 2 ) + S.t + trend(Y.t))
+summary(MModel2)
+checkresiduals(MModel2)
+MModel3 =dynlm(Y.t ~ L(Y.t , k = 3 ) + S.t + trend(Y.t))
+summary(MModel3)
+checkresiduals(MModel3)
+MModel4 =dynlm(Y.t ~ L(Y.t , k = 4 ) +S.t + trend(Y.t))
+summary(MModel4)
+checkresiduals(MModel4)
+MModel7 =dynlm(Y.t ~ L(Y.t , k = 4 ) + S.t+S.t.1 + trend(Y.t) + rbo_temp.ts)
+summary(MModel7)
+checkresiduals(MModel7)
+MModel5 =dynlm(Y.t  ~ L(Y.t , k = 4 ) + S.t + S.t.1 + trend(Y.t) + rbo_rainfall.ts)
+summary(MModel5)
+checkresiduals(MModel5)
+MModel6 =dynlm(Y.t ~ L(Y.t , k = 4 ) +S.t +S.t.1 + trend(Y.t) + rbo_radiation.ts)
+summary(MModel6)
+checkresiduals(MModel6)
+MModel8 =dynlm(Y.t ~ L(Y.t , k = 4 ) +S.t +S.t.1+ trend(Y.t) + rbo_humidity.ts)
+summary(MModel8)
+checkresiduals(MModel8)
+```
+
+
+## Dynamic Model Comparison
+
+Here we will see the least value of MASE by using function
+
+
+
+```{r}
+library(GGally)
+library(dplyr)
+# creating a new model
+Model_comparison <- c("MModel1","MModel2","MModel3","MModel4" , "MModel5","MModel6", "MModel7","MModel8")
+
+# checking its accuracy
+
+MASE_t3 <- c(accuracy(MModel1)[6],accuracy(MModel2)[6],accuracy(MModel3)[6],accuracy(MModel4)[6],
+             accuracy(MModel5)[6],accuracy(MModel6)[6],accuracy(MModel7)[6],accuracy(MModel8)[6])
+
+
+model_dylm_task3 <- data.frame(Model_comparison,MASE_t3)
+model_dylm_task3
+
+```
+
+From above we got to know that model 6 is the best model for forecasting i.e (model6 = 0.6055852)
+
+```{r}
+par(mfrow=c(1,1))
+plot(Y.t,ylab='Log of RBO in metric',xlab='Year',main = "Time series plot of the logarithm of RBO.")
+lines(MModel6$fitted.values,col="red")
+     
+```
+
+```{r,message=FALSE}
+q = 36
+n = nrow(MModel6$model)
+rbo.frc = array(NA , (n + q))
+rbo.frc[1:n] = Y.t[4:length(Y.t)]
+
+trend = array(NA,q)
+trend.start = MModel6$model[n,"trend(Y.t)"]
+trend = seq(trend.start , trend.start + q/12, 1/12)
+```
+
+# Summary
+.
+In **task-1** to make statistical conclusions, time series analysis, time series regression methods, and forecasting approaches were employed to a dataset including weekly mortality series of the possible consequences of climate change and pollution on disease-specific mortality from 2010 to 2020. The objective is to analyze, forecast, and choose the best model for a series. This data was originally imported, and then each column was separately converted into a time series using the ts function. Then, visuals for each variable were shown. The data was then scaled so that all of the charts were visible. The stationarity test is then performed on both series, and we find that both series are stationary at the 5% level of significance. Following that, we investigated the impact of time series components using STL decomposition. The time series regression technique was then applied with multivariate formation, and all of the relevant techniques, such as finite DLM, dynamic lag, exponential smoothing, and state-space model, were fitted. Finally, the lowest mase value obtained was                              . Then, in ascending order, we constructed a table including all of the models that had been fitted so far, with the lowest mase values displayed. Lastly, the four weeks ahead forecasts were displayed.
+
+In **task-2** to make statistical conclusions, time series analysis, time series regression methods, and forecasting approaches were employed to a dataset including FFD (first flowering day) series of the possible consequences on climate parameters such as rainfall (rain), temperature (temp), radiation level (rad), and relative humidity (RH). This data was originally imported, and then each column was separately converted into a time series using the ts function. Then, visuals for each variable were shown. The data was then scaled so that all of the charts were visible. The stationarity test is then performed on both series, and we find that both series are non-stationary at the 5% level of significance. So second and third differencing has been applied to make data stationery at a 5% level of significance. Following that, the time series regression technique was then applied with a univariate approach, and all of the relevant techniques, such as finite DLM, dynamic lag, exponential smoothing, and state-space model, were fitted. Finally, the lowest mase value obtained was                    . Then, in ascending order, we constructed a table including all of the models that had been fitted so far, with the lowest mase values displayed. Lastly, the three years ahead forecasts were displayed.
+
+
+In **task-3** to make statistical conclusions, time series analysis, time series regression methods, and forecasting approaches were employed to a dataset. This data examines the impact of long-term climatic changes in Victoria on the relative blooming order similarity of 81 plant species. This data was originally imported, and then each column was separately converted into a time series using the ts function. Then, visuals for each variable were shown. The data was then scaled so that all of the charts were visible. Following that, the time series regression technique was then applied with a univariate approach, and all of the relevant techniques, such as finite DLM, dynamic lag, were fitted. Finally, the lowest mase value obtained was                                  . Then, in ascending order, we constructed a table including all of the models that had been fitted so far, with the lowest mase values displayed. Lastly, the forecasts for the ahead 3 years were displayed.
+
+# Conclusion
+
+In **task 1** the primary conclusions from model fitting are the time series regression with multivariate approach, certain exponential smoothing models, and the manually proposed state-space model that failed to capture autocorrelation and seasonality in mortality data. There were also concerns with the residuals from all of the model’s standardized assumptions. Damped additive technique and Multiplicative seasonal damped technique were the most successful models for apprehending seasonality and serial correlation. These models were also observed to be the most effective at reducing MASE with MASE=0.687106984627893 for the Damped additive method and MASE=0.687106984627893 for the Multiplicative seasonal damped method. We picked the Damped additive technique for predicting based on the results of the investigation. 
+
+In **task 2** the primary conclusions from model fitting are the time series regression with univariate approach, certain exponential smoothing models, and the manually proposed state-space model that failed to capture autocorrelation and seasonality in FFD data. Models were also observed to be the most effective at reducing MASE with MASE=0.513033974107104 for the Polynomial DLM_radiation method. We picked the polynomial technique for predicting based on the results of the investigation.
+
+In **task 3** the primary conclusions from model fitting are the time series regression with the univariate approach in RBO data. Moreover, need to analyze the same particular data with the dynamic method and give forecast 3 years ahead with the least mase value developed from the accuracy-test (Model comparison). Models were also observed to be the most effective at reducing MASE with MASE=0.6055852 for the model method. We picked the model 6 technique for predicting based on the results of the investigation. 
+
+# Reference
+
+The dataset/Codes sourced from MATH1307, CLO’s (week 3-7) assignment 2 canvas by Senior Professor .Irene Hudson, RMIT University.
+
+https://www.frontiersin.org/articles/10.3389/fpls.2020.594538/full
+
+https://ourworldindata.org/air-pollution
+
+https://www.hindawi.com/journals/amete/2017/2954010/
+
